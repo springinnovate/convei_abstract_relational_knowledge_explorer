@@ -31,6 +31,7 @@ class Publication(Base):
     abstract_embedding: Mapped[bytes | None] = mapped_column(LargeBinary)
 
     satellite_type: Mapped[str | None] = mapped_column(Text)
+    type_evidence: Mapped[str | None] = mapped_column(Text)
 
     __table_args__ = (
         Index(

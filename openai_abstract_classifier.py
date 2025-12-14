@@ -15,6 +15,9 @@ logging.basicConfig(
     format="[%(filename)s:%(lineno)d] %(levelname)s %(message)s",
 )
 
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("openai").setLevel(logging.WARNING)
+
 load_dotenv()
 CLIENT = OpenAI(timeout=600.0)
 
@@ -66,20 +69,27 @@ def build_prompt(title: str | None, abstract: str | None) -> str:
         "Given the title and abstract of a research article, determine:\n"
         "1) Which, if any, specific satellite platforms or sensors from this allowed list are clearly used in the work:\n"
         f"{labels_str}\n"
-        "2) A coarse label describing whether the work clearly uses satellite data, some other remote sensing source, or is not really about satellite/remote sensing data.\n\n"
+        "2) A coarse label describing whether the work clearly uses satellite data, some other remote sensing source, "
+        "or is not really about satellite/remote sensing data.\n\n"
+        "VERY IMPORTANT:\n"
+        '- You MUST always provide a non-empty "evidence" string.\n'
+        "- For GENERIC_SATELLITE or GENERIC_REMOTE_SOURCED, quote the exact phrases that indicate satellite/remote sensing use "
+        '(e.g. "satellite imagery", "remote sensing data", "aerial photographs", "drone imagery").\n'
+        "- For NOT_SATELLITE_RELATED or UNKNOWN, explicitly state that the abstract does not mention satellite or remote sensing "
+        "and summarise what it *does* talk about.\n\n"
         "Rules:\n"
         "- Only return satellite names from the allowed list. Do not invent new satellite names.\n"
-        '- If the abstract only mentions generic phrases like "satellite data", "remote sensing", or "Earth observation" without naming a specific satellite from the list, then the satellites list must be empty.\n'
-        '- If the work clearly uses satellite data (even if generic), set generic_label to "GENERIC_SATELLITE".\n'
-        '- If the work clearly uses non-satellite remote sensing (e.g., aerial imagery, UAV/Drone, airborne LiDAR) but not satellites, set generic_label to "GENERIC_REMOTE_SOURCED".\n'
+        '- If the abstract only mentions generic phrases like "satellite data", "remote sensing", or "Earth observation" '
+        'without naming a specific satellite from the list, then satellites must be an empty list and generic_label should be "GENERIC_SATELLITE".\n'
+        "- If the work clearly uses non-satellite remote sensing (e.g., aerial imagery, UAV/Drone, airborne LiDAR) but not satellites, "
+        'set generic_label to "GENERIC_REMOTE_SOURCED".\n'
         '- If the work is not really about satellite or remote sensing data at all, set generic_label to "NOT_SATELLITE_RELATED".\n'
-        '- If you cannot tell, set generic_label to "UNKNOWN".\n'
-        "- Always follow the JSON schema exactly.\n\n"
+        '- If you cannot tell, set generic_label to "UNKNOWN".\n\n'
         "Return a JSON object with this exact structure:\n"
         "{\n"
         '  "satellites": [list of zero or more strings, each one from the allowed satellite list],\n'
         '  "generic_label": one of [' + generic_str + "],\n"
-        '  "evidence": "short explanation quoting phrases from the abstract that justify the decision"\n'
+        '  "evidence": "non-empty explanation quoting phrases from the abstract that justify the decision"\n'
         "}\n\n"
         "Title:\n"
         f"{text_title}\n\n"
@@ -155,18 +165,29 @@ def main() -> None:
                     result = call_model(client, pub.title, pub.abstract)
                     satellites = result.get("satellites") or []
                     generic_label = result.get("generic_label") or "UNKNOWN"
-                    evidence = result.get("evidence") or ""
-
                     if satellites:
                         pub.satellite_type = ",".join(sorted(set(satellites)))
                     else:
                         pub.satellite_type = generic_label
-
+                    evidence = result.get("evidence")
+                    if not evidence:
+                        if generic_label in (
+                            "GENERIC_SATELLITE",
+                            "GENERIC_REMOTE_SOURCED",
+                        ):
+                            evidence = "Model classified as {0} but did not provide evidence; abstract likely contains generic remote sensing language.".format(
+                                generic_label
+                            )
+                        else:
+                            evidence = "Model classified as {0} and did not detect satellite or remote sensing related terms.".format(
+                                generic_label
+                            )
                     pub.type_evidence = evidence
 
                 session.commit()
                 offset += batch_size
                 pbar.update(len(batch))
+                return
 
 
 if __name__ == "__main__":
