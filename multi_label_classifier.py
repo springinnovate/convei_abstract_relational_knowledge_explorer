@@ -1,25 +1,35 @@
 import argparse
+import logging
 
 import numpy as np
-from sqlalchemy import event, select
+from sqlalchemy import event, select, func
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import create_engine
+from sqlalchemy import create_engine
 from sklearn.linear_model import LogisticRegression
 from sklearn.multiclass import OneVsRestClassifier
+from tqdm import tqdm
+from models import Publication
 
-from your_models_module import Publication
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(filename)s:%(lineno)d] %(levelname)s %(message)s",
+)
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--db-path", required=True)
-    p.add_argument("--embedding-dim", type=int, required=True)
     p.add_argument("--max-train", type=int, default=200000)
     p.add_argument("--batch-size", type=int, default=2000)
     return p.parse_args()
 
 
 def main() -> None:
+    logging.basicConfig(
+        level=logging.INFO, format="[%(asctime)s] %(levelname)s %(message)s"
+    )
+    log = logging.getLogger(__name__)
+
     args = parse_args()
 
     engine = create_engine(
@@ -39,6 +49,7 @@ def main() -> None:
     Session = sessionmaker(bind=engine, future=True, expire_on_commit=False)
 
     with Session() as session:
+        log.info("building training set")
         train_stmt = (
             select(
                 Publication.id,
@@ -54,6 +65,9 @@ def main() -> None:
         )
         rows = session.execute(train_stmt).all()
 
+        n_train = len(rows)
+        log.info("training rows: %d", n_train)
+
         label_set: set[str] = set()
         for _, _, sat_type in rows:
             if not sat_type:
@@ -65,14 +79,15 @@ def main() -> None:
 
         labels = sorted(label_set)
         label_to_idx = {l: i for i, l in enumerate(labels)}
+        log.info("distinct labels: %d", len(labels))
 
-        n_train = len(rows)
-        d = args.embedding_dim
-        X = np.empty((n_train, d), dtype=np.float32)
+        first_emb = rows[0][1]
+        embedding_dims = len(first_emb) // 4
+        X = np.empty((n_train, embedding_dims), dtype=np.float32)
         Y = np.zeros((n_train, len(labels)), dtype=np.int8)
 
         for i, (_, emb_bytes, sat_type) in enumerate(rows):
-            X[i] = np.frombuffer(emb_bytes, dtype=np.float32, count=d)
+            X[i] = np.frombuffer(emb_bytes, dtype=np.float32)
             if sat_type:
                 for lbl in sat_type.split(","):
                     lbl = lbl.strip()
@@ -82,6 +97,7 @@ def main() -> None:
                     if j is not None:
                         Y[i, j] = 1
 
+        log.info("starting classifier training")
         clf = OneVsRestClassifier(
             LogisticRegression(
                 max_iter=1000,
@@ -89,50 +105,66 @@ def main() -> None:
             )
         )
         clf.fit(X, Y)
+        log.info("finished classifier training")
 
         batch_size = args.batch_size
+        unlabeled_filter = (
+            Publication.abstract_embedding.is_not(None),
+            Publication.satellite_type.is_(None),
+        )
+
+        unlabeled_ids_stmt = select(Publication.id).where(*unlabeled_filter)
+        total_unlabeled = session.execute(
+            select(func.count()).select_from(unlabeled_ids_stmt.subquery())
+        ).scalar_one()
+        log.info("unlabeled rows for inference: %d", total_unlabeled)
+
         unlabeled_stmt = (
             select(Publication)
-            .where(
-                Publication.abstract_embedding.is_not(None),
-                Publication.satellite_type.is_(None),
-            )
+            .where(*unlabeled_filter)
             .order_by(Publication.id)
         )
 
         offset = 0
-        while True:
-            batch = (
-                session.execute(unlabeled_stmt.limit(batch_size).offset(offset))
-                .scalars()
-                .all()
-            )
-            if not batch:
-                break
-
-            B = len(batch)
-            Xb = np.empty((B, d), dtype=np.float32)
-            for i, pub in enumerate(batch):
-                Xb[i] = np.frombuffer(
-                    pub.abstract_embedding, dtype=np.float32, count=d
+        with tqdm(total=total_unlabeled) as pbar:
+            while True:
+                batch = (
+                    session.execute(
+                        unlabeled_stmt.limit(batch_size).offset(offset)
+                    )
+                    .scalars()
+                    .all()
                 )
+                if not batch:
+                    break
 
-            Pb = clf.predict_proba(Xb)
+                B = len(batch)
+                Xb = np.empty((B, embedding_dims), dtype=np.float32)
+                for i, pub in enumerate(batch):
+                    Xb[i] = np.frombuffer(
+                        pub.abstract_embedding, dtype=np.float32
+                    )
 
-            for i, pub in enumerate(batch):
-                p = Pb[i]
-                max_p = float(p.max())
-                if max_p < 0.5:
-                    continue
-                if max_p < 0.85:
-                    continue
-                chosen = [labels[j] for j, pj in enumerate(p) if pj >= 0.5]
-                if not chosen:
-                    continue
-                pub.satellite_type = ",".join(sorted(set(chosen)))
+                Pb = clf.predict_proba(Xb)
 
-            session.commit()
-            offset += batch_size
+                updated = 0
+                for i, pub in enumerate(batch):
+                    p = Pb[i]
+                    max_p = float(p.max())
+                    if max_p < 0.5:
+                        continue
+                    if max_p < 0.85:
+                        continue
+                    chosen = [labels[j] for j, pj in enumerate(p) if pj >= 0.5]
+                    if not chosen:
+                        continue
+                    pub.satellite_type = ",".join(sorted(set(chosen)))
+                    updated += 1
+
+                session.commit()
+                offset += batch_size
+                pbar.update(B)
+                log.info("processed batch size=%d updated=%d", B, updated)
 
 
 if __name__ == "__main__":
