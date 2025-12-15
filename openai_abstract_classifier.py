@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from json import JSONDecodeError
 import argparse
 import json
 import logging
@@ -9,6 +11,7 @@ from tqdm import tqdm
 from openai import OpenAI
 from dotenv import load_dotenv
 from models import Publication
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -56,6 +59,7 @@ GENERIC_LABELS = [
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--db-path", required=True)
+    p.add_argument("--limit", type=int)
     return p.parse_args()
 
 
@@ -98,25 +102,38 @@ def build_prompt(title: str | None, abstract: str | None) -> str:
     )
 
 
-def call_model(client: OpenAI, title: str | None, abstract: str | None) -> dict:
+log = logging.getLogger(__name__)
+
+
+def call_model(
+    client: OpenAI, title: str | None, abstract: str | None
+) -> dict | None:
     prompt = build_prompt(title, abstract)
-    resp = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        response_format={"type": "json_object"},
-        messages=[
-            {
-                "role": "system",
-                "content": "You extract structured information about satellites used in research articles.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-    )
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            response_format={"type": "json_object"},
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You extract structured information about satellites used in research articles.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+        )
+    except Exception as e:
+        log.warning("openai error: %s", e)
+        return None
+
     content = resp.choices[0].message.content
-    return json.loads(content)
+    try:
+        return json.loads(content)
+    except JSONDecodeError as e:
+        log.warning("json decode error: %s", e)
+        return None
 
 
 def main() -> None:
-    log = logging.getLogger(__name__)
 
     args = parse_args()
 
@@ -150,44 +167,85 @@ def main() -> None:
 
         batch_size = 50
         offset = 0
-
+        max_workers = 64
         with tqdm(total=total) as pbar:
             while True:
-                batch = (
-                    session.execute(stmt.limit(batch_size).offset(offset))
-                    .scalars()
-                    .all()
-                )
-                if not batch:
+                if args.limit:
+                    remaining = args.limit - offset
+                    if remaining <= 0:
+                        break
+                    pubs_batch = (
+                        session.execute(
+                            stmt.limit(min(batch_size, remaining)).offset(
+                                offset
+                            )
+                        )
+                        .scalars()
+                        .all()
+                    )
+                else:
+                    pubs_batch = (
+                        session.execute(stmt.limit(batch_size).offset(offset))
+                        .scalars()
+                        .all()
+                    )
+
+                if not pubs_batch:
                     break
 
-                for pub in batch:
-                    result = call_model(client, pub.title, pub.abstract)
-                    satellites = result.get("satellites") or []
-                    generic_label = result.get("generic_label") or "UNKNOWN"
-                    if satellites:
-                        pub.satellite_type = ",".join(sorted(set(satellites)))
-                    else:
-                        pub.satellite_type = generic_label
-                    evidence = result.get("evidence")
-                    if not evidence:
-                        if generic_label in (
-                            "GENERIC_SATELLITE",
-                            "GENERIC_REMOTE_SOURCED",
-                        ):
-                            evidence = "Model classified as {0} but did not provide evidence; abstract likely contains generic remote sensing language.".format(
-                                generic_label
-                            )
-                        else:
-                            evidence = "Model classified as {0} and did not detect satellite or remote sensing related terms.".format(
-                                generic_label
-                            )
-                    pub.type_evidence = evidence
+                inputs = [
+                    (pub.id, pub.title, pub.abstract) for pub in pubs_batch
+                ]
+                results: dict[int, tuple[str, str]] = {}
+
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    futures = {
+                        executor.submit(
+                            call_model, client, title, abstract
+                        ): pub_id
+                        for pub_id, title, abstract in inputs
+                    }
+
+                    for fut in as_completed(futures):
+                        pub_id = futures[fut]
+                        result = fut.result()
+                        if result is None:
+                            pbar.update(1)
+                            continue
+
+                        satellites = result.get("satellites") or []
+                        generic_label = result.get("generic_label") or "UNKNOWN"
+                        sat_value = (
+                            ",".join(sorted(set(satellites)))
+                            if satellites
+                            else generic_label
+                        )
+
+                        evidence = result.get("evidence")
+                        if not evidence:
+                            if generic_label in (
+                                "GENERIC_SATELLITE",
+                                "GENERIC_REMOTE_SOURCED",
+                            ):
+                                evidence = "Model classified as {0} but did not provide evidence; abstract likely contains generic remote sensing language.".format(
+                                    generic_label
+                                )
+                            else:
+                                evidence = "Model classified as {0} and did not detect satellite or remote sensing related terms.".format(
+                                    generic_label
+                                )
+
+                        results[pub_id] = (sat_value, evidence)
+                        pbar.update(1)
+
+                for pub in pubs_batch:
+                    r = results.get(pub.id)
+                    if not r:
+                        continue
+                    pub.satellite_type, pub.type_evidence = r
 
                 session.commit()
-                offset += batch_size
-                pbar.update(len(batch))
-                return
+                offset += len(pubs_batch)
 
 
 if __name__ == "__main__":
