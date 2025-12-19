@@ -30,23 +30,83 @@ SATELLITE_LABELS = [
     "MODIS",
     "ASTER",
     "VIIRS",
+    "Terra",
+    "Aqua",
+    "Maxar",
     "WorldView",
+    "GeoEye",
     "QuickBird",
-    "PlanetScope",
     "IKONOS",
-    "NOAA",
+    "Planet",
+    "PlanetScope",
+    "Planet Labs",
+    "Dove",
+    "SuperDove",
+    "RapidEye",
+    "SkySat",
+    "Pléiades",
+    "SPOT",
+    "OtherOpticalCommercial",
+    "BlackSky",
+    "Satellogic",
+    "Newsat",
+    "TripleSat",
+    "EROS",
     "GOES",
     "METEOSAT",
-    "SPOT",
+    "MTG",
+    "MSG",
+    "SEVIRI",
+    "MetOp",
+    "Himawari",
+    "INSAT",
+    "GeoKOMPSAT",
+    "Envisat",
+    "ASAR",
+    "ERS",
     "RADARSAT",
+    "RCM",
+    "RADARSAT Constellation Mission",
     "TerraSAR",
+    "TerraSAR-X",
+    "TanDEM-X",
+    "TerraSAR-L",
     "COSMO-SkyMed",
     "ALOS",
-    "Envisat",
-    "GHGSat",
-    "SkySat",
+    "Daichi",
+    "PALSAR",
+    "SAOCOM",
+    "PAZ",
+    "KOMPSAT",
+    "RISAT",
+    "ICEYE",
+    "Capella",
+    "Umbra",
+    "NovaSAR",
+    "NISAR",
+    "Gaofen",
+    "ZiYuan",
+    "Jilin",
+    "SuperView",
+    "HJ",
+    "Huanjing",
+    "Tianhui",
+    "CBERS",
+    "Cartosat",
     "PRISMA",
+    "EnMAP",
+    "PROBA-V",
+    "GHGSat",
+    "PACE",
+    "OCI",
+    "TROPOMI",
+    "S5P",
+    "Suomi NPP",
+    "NOAA",
+    "JPSS",
+    "Joint Polar Satellite System",
 ]
+
 
 GENERIC_LABELS = [
     "GENERIC_SATELLITE",
@@ -71,27 +131,39 @@ def build_prompt(title: str | None, abstract: str | None) -> str:
     return (
         "You are a remote sensing expert.\n"
         "Given the title and abstract of a research article, determine:\n"
-        "1) Which, if any, specific satellite platforms or sensors from this allowed list are clearly used in the work:\n"
-        f"{labels_str}\n"
+        "1) Which, if any, specific satellite platforms or sensors are clearly used in the work.\n"
         "2) A coarse label describing whether the work clearly uses satellite data, some other remote sensing source, "
         "or is not really about satellite/remote sensing data.\n\n"
+        "You have an allowed label list. Prefer returning labels from this list when they match what the abstract says:\n"
+        f"{labels_str}\n\n"
         "VERY IMPORTANT:\n"
         '- You MUST always provide a non-empty "evidence" string.\n'
+        "- Evidence must quote exact phrases from the title/abstract that justify your decision.\n"
         "- For GENERIC_SATELLITE or GENERIC_REMOTE_SOURCED, quote the exact phrases that indicate satellite/remote sensing use "
         '(e.g. "satellite imagery", "remote sensing data", "aerial photographs", "drone imagery").\n'
-        "- For NOT_SATELLITE_RELATED or UNKNOWN, explicitly state that the abstract does not mention satellite or remote sensing "
+        "- For NOT_SATELLITE_RELATED or UNKNOWN, explicitly state that the abstract does not clearly mention satellite or remote sensing "
         "and summarise what it *does* talk about.\n\n"
-        "Rules:\n"
-        "- Only return satellite names from the allowed list. Do not invent new satellite names.\n"
-        '- If the abstract only mentions generic phrases like "satellite data", "remote sensing", or "Earth observation" '
-        'without naming a specific satellite from the list, then satellites must be an empty list and generic_label should be "GENERIC_SATELLITE".\n'
-        "- If the work clearly uses non-satellite remote sensing (e.g., aerial imagery, UAV/Drone, airborne LiDAR) but not satellites, "
-        'set generic_label to "GENERIC_REMOTE_SOURCED".\n'
-        '- If the work is not really about satellite or remote sensing data at all, set generic_label to "NOT_SATELLITE_RELATED".\n'
-        '- If you cannot tell, set generic_label to "UNKNOWN".\n\n'
+        "Decision rules:\n"
+        "- First, try to match mentioned platforms/sensors to the allowed label list (case-insensitive, minor punctuation/spacing differences OK).\n"
+        "- If a mentioned platform/sensor does NOT match the allowed list, but it is clearly a specific satellite/platform/sensor name "
+        '(e.g. a named mission/constellation or a sensor name like "SAR", "MSI", "TROPOMI" when tied to a specific mission), '
+        "you may include it in the satellites list as written in the abstract.\n"
+        "- Do NOT invent names. Only include names explicitly present in the title/abstract.\n"
+        "- If only generic phrases are used (e.g. '\"satellite data\"', '\"satellite imagery\"', '\"remote sensing\"', "
+        '"Earth observation"\') with no specific platform/sensor name, then satellites must be an empty list and generic_label must be "GENERIC_SATELLITE".\n'
+        "- If the work clearly uses non-satellite remote sensing (e.g., aerial imagery, UAV/drone, airborne LiDAR) but not satellites, "
+        'set generic_label to "GENERIC_REMOTE_SOURCED" and satellites must be empty.\n'
+        '- If it clearly indicates satellite use but you cannot identify any specific platform/sensor name, set generic_label to "GENERIC_SATELLITE".\n'
+        '- If it is not really about satellite or remote sensing data at all, set generic_label to "NOT_SATELLITE_RELATED".\n'
+        '- If you cannot tell from the title/abstract, set generic_label to "UNKNOWN".\n\n'
+        "Output rules:\n"
+        "- The satellites list may contain:\n"
+        "  a) zero or more strings from the allowed label list, and/or\n"
+        "  b) zero or more verbatim satellite/platform/sensor names quoted from the title/abstract when clearly specific.\n"
+        "- If you include a non-allowed name, evidence must quote the exact mention and briefly justify why it is clearly a satellite/platform/sensor.\n\n"
         "Return a JSON object with this exact structure:\n"
         "{\n"
-        '  "satellites": [list of zero or more strings, each one from the allowed satellite list],\n'
+        '  "satellites": [list of zero or more strings],\n'
         '  "generic_label": one of [' + generic_str + "],\n"
         '  "evidence": "non-empty explanation quoting phrases from the abstract that justify the decision"\n'
         "}\n\n"

@@ -90,16 +90,18 @@ def main() -> None:
 
     write_q: queue.Queue = queue.Queue()
 
+    pub = Publication.__table__
+
     stmt = (
-        update(Publication)
-        .where(Publication.id == bindparam("id"))
-        .where(Publication.abstract.is_not(None))
-        .where(Publication.abstract_embedding.is_(None))
+        pub.update()
+        .where(pub.c.id == bindparam("b_id"))
+        .where(pub.c.abstract.is_not(None))
+        .where(pub.c.abstract_embedding.is_(None))
         .values(abstract_embedding=bindparam("emb"))
     )
 
-    def _flush(pending: list[tuple[int, object]]) -> None:
-        rows = [{"id": pub_id, "emb": emb} for pub_id, emb in pending]
+    def _flush(pending):
+        rows = [{"b_id": pub_id, "emb": emb} for pub_id, emb in pending]
         for attempt in range(8):
             try:
                 with Session.begin() as session:
