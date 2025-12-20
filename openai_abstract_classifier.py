@@ -177,9 +177,7 @@ def build_prompt(title: str | None, abstract: str | None) -> str:
 log = logging.getLogger(__name__)
 
 
-def call_model(
-    client: OpenAI, title: str | None, abstract: str | None
-) -> dict | None:
+def call_model(client: OpenAI, title: str | None, abstract: str | None) -> dict | None:
     prompt = build_prompt(title, abstract)
     try:
         resp = client.chat.completions.create(
@@ -206,7 +204,6 @@ def call_model(
 
 
 def main() -> None:
-
     args = parse_args()
 
     engine = create_engine(
@@ -239,7 +236,7 @@ def main() -> None:
 
         batch_size = 50
         offset = 0
-        max_workers = 64
+        max_workers = 32
         with tqdm(total=total) as pbar:
             while True:
                 if args.limit:
@@ -248,9 +245,7 @@ def main() -> None:
                         break
                     pubs_batch = (
                         session.execute(
-                            stmt.limit(min(batch_size, remaining)).offset(
-                                offset
-                            )
+                            stmt.limit(min(batch_size, remaining)).offset(offset)
                         )
                         .scalars()
                         .all()
@@ -265,16 +260,12 @@ def main() -> None:
                 if not pubs_batch:
                     break
 
-                inputs = [
-                    (pub.id, pub.title, pub.abstract) for pub in pubs_batch
-                ]
+                inputs = [(pub.id, pub.title, pub.abstract) for pub in pubs_batch]
                 results: dict[int, tuple[str, str]] = {}
 
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     futures = {
-                        executor.submit(
-                            call_model, client, title, abstract
-                        ): pub_id
+                        executor.submit(call_model, client, title, abstract): pub_id
                         for pub_id, title, abstract in inputs
                     }
 
