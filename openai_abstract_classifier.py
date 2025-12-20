@@ -232,34 +232,24 @@ def main() -> None:
         total = session.execute(total_stmt).scalar_one()
         log.info("rows to send to LLM: %d", total)
 
-        stmt = select(Publication).where(*base_filter).order_by(Publication.id)
-
         batch_size = 50
-        offset = 0
         max_workers = 32
+        last_id = 0
+
         with tqdm(total=total) as pbar:
             while True:
-                if args.limit:
-                    remaining = args.limit - offset
-                    if remaining <= 0:
-                        break
-                    pubs_batch = (
-                        session.execute(
-                            stmt.limit(min(batch_size, remaining)).offset(offset)
-                        )
-                        .scalars()
-                        .all()
+                q = (
+                    select(Publication)
+                    .where(
+                        Publication.satellite_type.is_(None),
+                        Publication.id > last_id,
                     )
-                else:
-                    pubs_batch = (
-                        session.execute(stmt.limit(batch_size).offset(offset))
-                        .scalars()
-                        .all()
-                    )
-
+                    .order_by(Publication.id)
+                    .limit(batch_size)
+                )
+                pubs_batch = session.execute(q).scalars().all()
                 if not pubs_batch:
                     break
-
                 inputs = [(pub.id, pub.title, pub.abstract) for pub in pubs_batch]
                 results: dict[int, tuple[str, str]] = {}
 
@@ -273,6 +263,10 @@ def main() -> None:
                         pub_id = futures[fut]
                         result = fut.result()
                         if result is None:
+                            results[pub_id] = (
+                                "ERROR",
+                                "call_model returned None",
+                            )
                             pbar.update(1)
                             continue
 
@@ -290,25 +284,25 @@ def main() -> None:
                                 "GENERIC_SATELLITE",
                                 "GENERIC_REMOTE_SOURCED",
                             ):
-                                evidence = "Model classified as {0} but did not provide evidence; abstract likely contains generic remote sensing language.".format(
-                                    generic_label
+                                evidence = (
+                                    f"Model classified as {generic_label} but did not provide evidence; "
+                                    "abstract likely contains generic remote sensing language."
                                 )
                             else:
-                                evidence = "Model classified as {0} and did not detect satellite or remote sensing related terms.".format(
-                                    generic_label
+                                evidence = (
+                                    f"Model classified as {generic_label} and did not detect satellite "
+                                    "or remote sensing related terms."
                                 )
 
                         results[pub_id] = (sat_value, evidence)
                         pbar.update(1)
 
                 for pub in pubs_batch:
-                    r = results.get(pub.id)
-                    if not r:
-                        continue
-                    pub.satellite_type, pub.type_evidence = r
+                    sat_type, ev = results[pub.id]
+                    pub.satellite_type = sat_type
+                    pub.type_evidence = ev
 
                 session.commit()
-                offset += len(pubs_batch)
 
 
 if __name__ == "__main__":
