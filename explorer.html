@@ -1,0 +1,2135 @@
+<!doctype html>
+<html lang='en'>
+  <head>
+    <meta charset='utf-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1' />
+    <title>Topic Connectivity Explorer</title>
+    <style>
+      :root{
+        --bg0:#070A12;
+        --bg1:#0B1220;
+        --card:rgba(255,255,255,.06);
+        --card2:rgba(255,255,255,.08);
+        --stroke:rgba(255,255,255,.10);
+        --stroke2:rgba(255,255,255,.14);
+        --text:rgba(255,255,255,.92);
+        --muted:rgba(255,255,255,.66);
+        --muted2:rgba(255,255,255,.50);
+        --accent:#8B5CF6;
+        --accent2:#22D3EE;
+        --good:#34D399;
+        --warn:#FBBF24;
+        --bad:#FB7185;
+        --shadow: 0 18px 60px rgba(0,0,0,.45);
+        --radius:16px;
+        --radius2:12px;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji';
+      }
+
+      *{box-sizing:border-box}
+      html,body{height:100%}
+      body{
+        margin:0;
+        font-family:var(--sans);
+        color:var(--text);
+        background:
+          radial-gradient(1200px 800px at 15% 10%, rgba(139,92,246,.25), transparent 55%),
+          radial-gradient(1200px 800px at 85% 15%, rgba(34,211,238,.20), transparent 55%),
+          radial-gradient(1200px 900px at 45% 110%, rgba(52,211,153,.12), transparent 55%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+        overflow:visible;
+      }
+
+
+      .app{
+        height:auto;
+        min-height: 100vh;
+        display:grid;
+        grid-template-columns: 360px 1fr;
+        gap:16px;
+        padding:16px;
+      }
+
+      .sidebar, .main{
+        min-height:0;
+        border:1px solid var(--stroke);
+        border-radius: var(--radius);
+        background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+        overflow:visible;
+      }
+
+      .sidebar{
+        display:flex;
+        flex-direction:column;
+      }
+
+      .brand{
+        padding:14px 14px 10px 14px;
+        border-bottom:1px solid var(--stroke);
+        background: linear-gradient(180deg, rgba(255,255,255,.07), transparent);
+      }
+
+      .brandTop{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+      }
+
+      .logo{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        min-width:0;
+      }
+
+      .dot{
+        width:12px;height:12px;border-radius:999px;
+        background: conic-gradient(from 180deg, var(--accent), var(--accent2), var(--good), var(--accent));
+        box-shadow: 0 0 0 6px rgba(139,92,246,.10), 0 0 40px rgba(139,92,246,.18);
+        flex:0 0 auto;
+      }
+
+      .title{
+        font-weight:700;
+        letter-spacing:.2px;
+        line-height:1.1;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+
+      .subtitle{
+        margin-top:6px;
+        font-size:12px;
+        color:var(--muted);
+        display:flex;
+        justify-content:space-between;
+        gap:8px;
+      }
+
+      .pill{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding:8px 10px;
+        font-size:12px;
+        border-radius:999px;
+        border:1px solid var(--stroke);
+        background: rgba(255,255,255,.05);
+        color:var(--text);
+        cursor:pointer;
+        transition: transform .12s ease, background .12s ease, border-color .12s ease;
+        user-select:none;
+      }
+
+      .pill:hover{
+        transform: translateY(-1px);
+        background: rgba(255,255,255,.08);
+        border-color: var(--stroke2);
+      }
+
+      .pillRow{
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+        align-items:center;
+      }
+
+      .searchWrap{
+        padding:12px 14px 12px 14px;
+        border-bottom:1px solid var(--stroke);
+        display:flex;
+        gap:10px;
+        align-items:center;
+      }
+
+      .search{
+        width:100%;
+        padding:10px 12px;
+        border-radius: 12px;
+        border:1px solid var(--stroke);
+        background: rgba(0,0,0,.22);
+        color:var(--text);
+        outline:none;
+        transition:border-color .12s ease, background .12s ease;
+      }
+      .search:focus{
+        border-color: rgba(139,92,246,.55);
+        background: rgba(0,0,0,.28);
+      }
+
+      .topicList{
+        padding:10px;
+        overflow:auto;
+      }
+
+      .topicItem{
+        width:100%;
+        text-align:left;
+        border:1px solid var(--stroke);
+        background: rgba(255,255,255,.04);
+        color:var(--text);
+        border-radius: 14px;
+        padding:10px 10px;
+        cursor:pointer;
+        transition: transform .12s ease, background .12s ease, border-color .12s ease;
+        display:flex;
+        gap:10px;
+        align-items:flex-start;
+        margin-bottom:10px;
+      }
+
+      .topicItem:hover{
+        transform: translateY(-1px);
+        background: rgba(255,255,255,.06);
+        border-color: var(--stroke2);
+      }
+
+      .topicItem.selected{
+        border-color: rgba(139,92,246,.65);
+        background: linear-gradient(180deg, rgba(139,92,246,.12), rgba(255,255,255,.04));
+      }
+
+      .topicBadge{
+        flex:0 0 auto;
+        width:34px;
+        height:34px;
+        border-radius: 12px;
+        border:1px solid var(--stroke);
+        background: radial-gradient(16px 16px at 30% 30%, rgba(34,211,238,.28), rgba(139,92,246,.22));
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-family:var(--mono);
+        font-size:12px;
+        color:rgba(255,255,255,.85);
+      }
+
+      .topicMeta{
+        min-width:0;
+        width:100%;
+      }
+
+      .topicName{
+        font-weight:650;
+        font-size:13px;
+        line-height:1.2;
+        margin:0 0 6px 0;
+        display:-webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow:hidden;
+      }
+
+      .topicSub{
+        font-size:12px;
+        color:var(--muted);
+        display:flex;
+        justify-content:space-between;
+        gap:10px;
+      }
+
+      .chip{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding:6px 10px;
+        border-radius:999px;
+        border:1px solid var(--stroke);
+        background: rgba(255,255,255,.05);
+        color:var(--muted);
+        font-size:12px;
+        user-select:none;
+      }
+
+      .main{
+        display:flex;
+        flex-direction:column;
+        min-width:0;
+      }
+
+      .topbar{
+        padding:14px 16px;
+        border-bottom:1px solid var(--stroke);
+        background: linear-gradient(180deg, rgba(255,255,255,.07), transparent);
+        display:flex;
+        flex-wrap:wrap;
+        gap:12px;
+        align-items:flex-end;
+        justify-content:space-between;
+      }
+
+      .selectedTitle{
+        min-width:0;
+      }
+
+      .selectedTitle h1{
+        margin:0;
+        font-size:16px;
+        font-weight:750;
+        letter-spacing:.2px;
+        line-height:1.15;
+        display:flex;
+        gap:10px;
+        align-items:center;
+        flex-wrap:wrap;
+      }
+
+      .selectedTitle .kicker{
+        font-family:var(--mono);
+        font-size:12px;
+        color:var(--muted);
+        font-weight:500;
+        padding:4px 8px;
+        border-radius:999px;
+        border:1px solid var(--stroke);
+        background: rgba(0,0,0,.22);
+      }
+
+      .selectedTitle .subline{
+        margin-top:6px;
+        font-size:12px;
+        color:var(--muted);
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+        align-items:center;
+      }
+
+      .controls{
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px 12px;
+        align-items:center;
+        justify-content:flex-end;
+      }
+
+      .controlGroup{
+        display:flex;
+        gap:8px;
+        align-items:center;
+        padding:8px 10px;
+        border-radius:14px;
+        border:1px solid var(--stroke);
+        background: rgba(0,0,0,.18);
+      }
+
+      .controlGroup label{
+        font-size:12px;
+        color:var(--muted);
+        user-select:none;
+        white-space:nowrap;
+      }
+
+      input[type='range']{ accent-color: var(--accent); }
+      .num{
+        width:76px;
+        padding:8px 8px;
+        border-radius: 12px;
+        border:1px solid var(--stroke);
+        background: rgba(0,0,0,.22);
+        color:var(--text);
+        outline:none;
+      }
+      .num:focus{ border-color: rgba(139,92,246,.55); }
+
+      .content{
+        padding:16px;
+        overflow:visible;
+        min-height:auto;
+        display:flex;
+        flex-direction:column;
+        gap:14px;
+      }
+
+      .panel{
+        border:1px solid var(--stroke);
+        border-radius: var(--radius);
+        background: rgba(255,255,255,.04);
+        overflow:auto;
+      }
+
+      .panelHeader{
+        padding:12px 14px;
+        border-bottom:1px solid var(--stroke);
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
+      }
+
+      .panelHeader h2{
+        margin:0;
+        font-size:13px;
+        font-weight:750;
+        letter-spacing:.25px;
+        text-transform:uppercase;
+        color: rgba(255,255,255,.80);
+      }
+
+      .panelHeader .meta{
+        font-size:12px;
+        color:var(--muted);
+        display:flex;
+        flex-wrap:wrap;
+        gap:10px;
+        justify-content:flex-end;
+      }
+
+      .panelBody{
+        padding:14px;
+      }
+
+      .detailGrid{
+        display:grid;
+        grid-template-columns: 1fr;
+        gap:12px;
+      }
+
+      .kv{
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px 12px;
+        align-items:center;
+      }
+
+      .kv .k{
+        font-size:12px;
+        color:var(--muted2);
+      }
+      .kv .v{
+        font-size:12px;
+        color:var(--text);
+        font-family:var(--mono);
+      }
+
+      .keywords{
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+        margin-top:8px;
+      }
+
+      .kw{
+        padding:7px 10px;
+        border-radius:999px;
+        border:1px solid var(--stroke);
+        background: rgba(255,255,255,.05);
+        font-size:12px;
+        color:rgba(255,255,255,.86);
+        user-select:none;
+      }
+
+      .repList{
+        margin-top:10px;
+        display:flex;
+        flex-direction:column;
+        gap:8px;
+      }
+
+      .rep{
+        border:1px solid var(--stroke);
+        background: rgba(0,0,0,.18);
+        border-radius: 14px;
+        padding:10px 10px;
+        display:flex;
+        justify-content:space-between;
+        gap:10px;
+        align-items:flex-start;
+      }
+
+      .rep a{
+        color:rgba(255,255,255,.88);
+        text-decoration:none;
+      }
+      .rep a:hover{ text-decoration:underline; }
+
+      .rep .left{
+        min-width:0;
+      }
+      .rep .t{
+        font-size:13px;
+        font-weight:650;
+        line-height:1.25;
+        margin:0 0 6px 0;
+      }
+      .rep .m{
+        font-size:12px;
+        color:var(--muted);
+        font-family:var(--mono);
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+      }
+
+      .rep .right{
+        flex:0 0 auto;
+        font-family:var(--mono);
+        font-size:12px;
+        color:var(--muted);
+        padding:6px 8px;
+        border-radius: 999px;
+        border:1px solid var(--stroke);
+        background: rgba(255,255,255,.04);
+      }
+
+      .tableWrap{
+        overflow:auto;
+      }
+
+      table{
+        width:100%;
+        border-collapse:separate;
+        border-spacing:0;
+        font-size:13px;
+      }
+
+      thead th{
+        position:sticky;
+        top:0;
+        z-index:2;
+        background: rgba(10,14,26,.92);
+        backdrop-filter: blur(10px);
+        border-bottom:1px solid var(--stroke);
+        color:rgba(255,255,255,.80);
+        font-size:12px;
+        letter-spacing:.2px;
+        text-transform:uppercase;
+        padding:10px 12px;
+        text-align:left;
+        white-space:nowrap;
+      }
+
+      tbody td{
+        border-bottom:1px solid rgba(255,255,255,.06);
+        padding:10px 12px;
+        vertical-align:top;
+      }
+
+      tbody tr:hover td{
+        background: rgba(255,255,255,.03);
+      }
+
+      .tnameBtn{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        cursor:pointer;
+        color:rgba(255,255,255,.92);
+        text-decoration:none;
+        font-weight:650;
+      }
+      .tnameBtn:hover{ text-decoration:underline; }
+
+      .small{
+        font-size:12px;
+        color:var(--muted);
+      }
+
+      .simCell{
+        min-width:160px;
+      }
+      .simRow{
+        display:flex;
+        align-items:center;
+        gap:10px;
+      }
+      .simNum{
+        font-family:var(--mono);
+        font-size:12px;
+        color:rgba(255,255,255,.82);
+        width:60px;
+      }
+      .simBar{
+        flex:1;
+        height:8px;
+        border-radius:999px;
+        border:1px solid var(--stroke);
+        background: rgba(0,0,0,.22);
+        overflow:hidden;
+      }
+      .simBar > div{
+        height:100%;
+        width:0%;
+        border-radius:999px;
+        background: linear-gradient(90deg, rgba(34,211,238,.75), rgba(139,92,246,.75));
+        box-shadow: 0 0 30px rgba(139,92,246,.22);
+      }
+
+      .rightAlign{
+        text-align:right;
+        white-space:nowrap;
+        font-family:var(--mono);
+      }
+
+      .tabRow{
+        padding:12px 14px;
+        border-bottom:1px solid var(--stroke);
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        align-items:center;
+        justify-content:space-between;
+        background: rgba(255,255,255,.02);
+      }
+
+      .seg{
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        align-items:center;
+      }
+
+      .segBtn{
+        padding:8px 10px;
+        border-radius:999px;
+        border:1px solid var(--stroke);
+        background: rgba(0,0,0,.18);
+        color:var(--muted);
+        cursor:pointer;
+        font-size:12px;
+        transition: background .12s ease, border-color .12s ease, transform .12s ease, color .12s ease;
+        user-select:none;
+      }
+      .segBtn:hover{
+        transform: translateY(-1px);
+        border-color: var(--stroke2);
+        background: rgba(255,255,255,.06);
+      }
+      .segBtn.active{
+        color:rgba(255,255,255,.90);
+        border-color: rgba(139,92,246,.55);
+        background: rgba(139,92,246,.12);
+      }
+
+      .footerNote{
+        padding:10px 14px 14px 14px;
+        font-size:12px;
+        color:var(--muted2);
+        border-top:1px solid rgba(255,255,255,.06);
+        background: rgba(0,0,0,.12);
+      }
+
+      @media (max-width: 980px){
+        body{overflow:auto}
+        .app{
+          height:auto;
+          grid-template-columns: 1fr;
+        }
+        .sidebar,.main{min-height:520px}
+      }
+    </style>
+  </head>
+  <body>
+    <div class='app'>
+      <aside class='sidebar'>
+        <div class='brand'>
+          <div class='brandTop'>
+            <div class='logo'>
+              <div class='dot'></div>
+              <div class='title'>Topic Connectivity Explorer</div>
+            </div>
+            <button class='pill' id='randomBtn' title='Pick a random topic'>Random</button>
+          </div>
+          <div class='subtitle'>
+            <span id='statsLeft'>—</span>
+            <span id='statsRight'>—</span>
+          </div>
+        </div>
+
+        <div class='searchWrap'>
+          <input class='search' id='topicSearch' placeholder='Search topics…' autocomplete='off' spellcheck='false' />
+        </div>
+
+        <div class='topicList' id='topicList'></div>
+      </aside>
+
+      <section class='main'>
+        <div class='topbar'>
+          <div class='selectedTitle'>
+            <h1 id='selectedH1'>
+              <span>Select a topic</span>
+            </h1>
+            <div class='subline' id='selectedSubline'></div>
+          </div>
+
+          <div class='controls'>
+            <div class='controlGroup'>
+              <label>Min similarity</label>
+              <input type='range' id='thr' min='0' max='1' step='0.01' value='0.75' />
+              <input class='num' type='number' id='thrNum' min='0' max='1' step='0.01' value='0.75' />
+            </div>
+
+            <div class='controlGroup'>
+              <label>Show top</label>
+              <input class='num' type='number' id='topK' min='1' step='1' value='50' />
+            </div>
+          </div>
+        </div>
+
+        <div class='content'>
+          <div class='panel' id='detailPanel'>
+            <div class='panelHeader'>
+              <h2>Topic details</h2>
+              <div class='meta' id='detailMeta'>—</div>
+            </div>
+            <div class='panelBody' id='detailBody'></div>
+          </div>
+
+          <div class='panel'>
+            <div class='panelHeader'>
+              <h2>Connected topics</h2>
+              <div class='meta' id='connectedMeta'>—</div>
+            </div>
+            <div class='tabRow'>
+              <div class='seg'>
+                <button class='segBtn active' data-sort='sim'>Sort: similarity</button>
+                <button class='segBtn' data-sort='pubs'>Sort: publications</button>
+                <button class='segBtn' data-sort='az'>Sort: A–Z</button>
+              </div>
+              <span class='small' id='connectedHint'></span>
+            </div>
+            <div class='tableWrap'>
+              <table id='connectedTable'>
+                <thead>
+                  <tr>
+                    <th>Similarity</th>
+                    <th>Topic</th>
+                    <th class='rightAlign'>Publications</th>
+                    <th class='rightAlign'>Confidence</th>
+                  </tr>
+                </thead>
+                <tbody id='connectedTbody'></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class='panel'>
+            <div class='panelHeader'>
+              <h2>Not connected</h2>
+              <div class='meta' id='notMeta'>—</div>
+            </div>
+            <div class='tabRow'>
+              <div class='seg'>
+                <button class='segBtn active' data-tab='missing'>Missing edge</button>
+                <button class='segBtn' data-tab='below'>Below threshold</button>
+              </div>
+              <div style='display:flex; gap:10px; align-items:center; flex-wrap:wrap;'>
+                <input class='search' id='notSearch' placeholder='Filter…' autocomplete='off' spellcheck='false' style='width:260px;' />
+              </div>
+            </div>
+            <div class='tableWrap'>
+              <table id='notTable'>
+                <thead>
+                  <tr>
+                    <th id='notCol0'>Reason</th>
+                    <th>Topic</th>
+                    <th class='rightAlign'>Publications</th>
+                    <th class='rightAlign'>Confidence</th>
+                  </tr>
+                </thead>
+                <tbody id='notTbody'></tbody>
+              </table>
+            </div>
+            <div class='footerNote' id='footerNote'></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const TOPICS_CSV = `topic_id,n_publications,label,confidence
+0,46768,Hyperspectral Image Classification and Remote Sensing,0.95
+1,44071,Remote Sensing and Forest Dynamics,0.92
+2,43753,Urban Flooding and Land Use Dynamics,0.92
+3,40753,Ocean Color and Marine Ecosystem Monitoring,0.95
+4,34345,Aerosol Measurement and Impact Studies,0.95
+5,34145,Satellite Communication Systems and Techniques,0.92
+6,34002,Satellite Formation Control and Dynamics,0.92
+7,32852,Social Determinants in Health Research,0.85
+8,32775,Hyperspectral Imaging Technologies,0.95
+9,31936,Satellite-Based Precipitation and Cloud Modeling,0.92
+10,31740,LiDAR-Based 3D Object Detection and Mapping,0.95
+11,30796,Synthetic Aperture Radar Imaging Techniques,0.95
+12,29063,Remote Sensing in Crop Monitoring,0.92
+13,23048,Structure-Activity Relationships in Drug Development,0.92
+14,22366,Global Navigation Satellite Systems (GNSS),0.95
+15,20903,Galactic Structures and Star Formation,0.92
+16,20216,Ionospheric Dynamics and Solar Influence,0.95
+17,17652,Satellite Geodesy and Earthquake Monitoring,0.92
+18,17379,Cryospheric Changes and Monitoring,0.92
+19,16681,Geospatial Data and Remote Sensing Applications,0.92
+20,16481,Remote Sensing for Soil and Water Management,0.92
+21,15118,Remote Sensing Image Fusion and Processing,0.95
+22,14848,Soil Moisture Monitoring and Management,0.95
+23,13869,Landslide Detection and Monitoring Techniques,0.95
+24,13825,Urban Heat Island and Land Surface Temperature,0.95
+25,13503,Advanced Laser Technologies for Remote Sensing,0.95
+26,13194,Plant Pathogen Interactions and Resistance Mechanisms,0.85
+27,13171,Muscle Regeneration and Stem Cell Biology,0.92
+28,12388,Advanced Antenna Technologies for Space and Communication,0.92
+29,8725,Advanced Materials and Spectroscopy,0.92
+30,8618,Planetary Geochemistry and Exploration,0.92
+31,7232,Wildfire Management and Remote Sensing,0.92
+32,6681,Wildlife Migration and Habitat Conservation,0.92
+33,6296,Remote Sensing and Geospatial Analysis,0.95
+34,6096,Magnetic Resonance Imaging and Electromagnetic Safety,0.92
+35,5319,Cultural Heritage and Archaeological Technologies,0.92
+36,4026,Analog-to-Digital Converter Design Innovations,0.92
+37,3943,Solar Energy Assessment and Optimization,0.92
+38,3156,Vector-Borne Disease Dynamics and Control,0.92
+39,3029,Marine Oil Spill Detection and Monitoring,0.95
+40,1466,Environmental Health and Well-being,0.92
+41,281,Shadow Detection and Compensation in Remote Sensing,0.95
+42,123,Contrail Formation and Climate Impact,0.92
+43,121,Hyperspectral Remote Sensing for Environmental Monitoring,0.95
+44,93,Remote Sensing for Locust Management,0.95
+45,86,Micromixing and Microfluidic Systems,0.95
+46,66,Exoplanet Atmosphere Characterization,0.95
+47,63,Ozone Monitoring in Russia,0.95
+48,43,Errors and Retractions in Scientific Publications,0.85
+49,34,Erythropoiesis-Stimulating Agents Detection,0.95
+50,2,Aerosol Trends and Population Dynamics,0.85
+51,1,Efficient Change Detection Models,0.90
+52,1,Semi-Supervised Cloud Removal Techniques,0.85
+53,1,Affective Computing in AI Networks,0.85
+54,1,Graph Convolutional Networks for NLP,0.85
+55,1,Point Cloud Segmentation for Rough Roads,0.85
+56,1,Ceiling-View Visual Odometry,0.85
+57,1,Monocular 3D Object Detection,0.95
+58,1,Cross-View Image Geo-Localization,0.85
+59,1,Deep Learning for Mesh Processing,0.95
+60,1,AI Applications in Climate Analysis,0.85
+61,1,Cloud Detection in Remote Sensing,0.95
+62,1,Adaptive Object Detection in Image Processing,0.85
+63,1,Fuzzy Risk Assessment in Wildlife Conservation,0.85
+64,1,Deep Learning for Satellite Imagery,0.85
+65,1,Hyperspectral Image Classification,0.85
+66,1,Drone Tracking and Security,0.85
+67,1,Urban Design and Environmental Metrics,0.85
+68,1,Impact of Climate on Ecosystem Productivity,0.85
+69,1,Wearable Antenna Technology,0.95
+70,1,Compact 3D Data Structures,0.85
+71,1,Efficient SLAM Techniques,0.85
+72,1,Urban Heat Management and Green Infrastructure,0.85
+73,1,Deep Learning for Image Change Detection,0.85
+74,1,Advertisement Image Classification,0.95
+75,1,Learning-Based Approaches in Graph Coloring,0.85
+76,1,Bird Detection in Aerial Videos,0.85
+77,1,Wearable Technology for Health Monitoring,0.85
+78,1,Vehicle Detection in Satellite Imagery,0.85
+79,1,Water Quality Monitoring in Aquaculture,0.85
+80,1,Soil Moisture Remote Sensing,0.85
+81,1,Microstrip Reflectarray Antenna Design,0.95
+82,1,Enhanced Location Accuracy Services,0.85
+83,1,Soil Loss Assessment in Drylands,0.85
+84,1,Remote Sensing of Thermal Variations,0.95
+85,1,Landslide Susceptibility and Soil Moisture Dynamics,0.95
+86,1,Cyclist Safety in Urban Environments,0.85
+87,1,Air Pollution in Urban Clusters,0.95
+88,1,Satellite Remote Sensing for Vegetation Productivity,0.90
+89,1,Microstrip Antennas for Wireless Communication,0.95
+90,1,Hyperspectral Image Processing,0.95
+91,1,Hyperspectral Imaging for Landmine Detection,0.95
+92,1,Camera and LIDAR Fusion Techniques,0.85
+93,1,De-speckling Methods in SAR Imagery,0.95
+94,1,Satellite Monitoring of Climate Extremes,0.95
+95,1,Trapezoidal Antenna Design and Measurement,0.90
+96,1,Quantization Noise Reduction in Frequency Synthesizers,0.95
+97,1,Open Source Image Analysis in Plant Research,0.85
+98,1,Land Cover Classification Techniques,0.85
+99,1,Reference Generation in ADCs,0.95
+100,1,Ultra High Field MRI Technology,0.95
+101,1,Hyperspectral Analysis in Agriculture,0.95
+102,1,Free-Space Optical Communication,0.85
+103,1,Low-Power Biomedical Signal Processing,0.95
+104,1,Noise Reduction in MEMS Sensors,0.85
+105,1,Ultrawideband Antenna Design,0.95
+106,1,Dust Storm Dynamics and Analysis,0.85
+107,1,Precipitation Patterns and Environmental Impact,0.85
+108,1,Erosion Dynamics in Bedrock Rivers,0.85
+109,1,Impedance Matching in Antenna Systems,0.85
+110,1,Dual-Band Signal Processing in Navigation,0.95
+111,1,Post-Disaster Communication Strategies,0.85
+112,1,Evaluation of Rainfall Estimation Techniques,0.85
+113,1,Roman Road Networks and Settlements,0.85
+114,1,Conscientious Objection and Refugee Status,0.85
+115,1,Strategic Urban Development in Networked Cities,0.85
+116,1,Multispectral Imaging in Medical Diagnosis,0.85
+117,1,Underwater Methane Monitoring Technologies,0.85
+118,1,Synthetic Data Generation for Remote Sensing,0.95
+119,1,Soil Erosion and Land Management,0.85
+120,1,Forest Measurement Techniques,0.85
+122,1,Satellite SAR Imagery Analysis,0.85
+123,1,SAR Anti-Jamming Techniques,0.85
+124,1,3D Model Registration and Coregistration,0.95
+125,1,Compensation Techniques in Ground Penetrating Radar,0.85
+126,1,Antarctic Soil Nematode Dynamics,0.95
+127,1,Segmentation Techniques for SAR Images,0.85
+128,1,Synthetic Data Balancing in SAR Recognition,0.85
+129,1,Hurricane Damage Modeling in Construction,0.95
+130,1,Neural Network Applications in Agriculture,0.95
+131,1,Satellite Geolocation Techniques,0.90
+132,1,Evolutionary Strategies in Hyperspectral Imaging,0.95
+133,1,Ship Detection in Polarimetric SAR Images,0.95
+134,1,SAR Tomography Techniques,0.95
+135,1,Airborne Synthetic Aperture Radar Processing,0.85
+136,1,Multispectral Imaging Systems,0.85
+137,1,Wearable Antennas for Satellite Communications,0.95
+138,1,Isosurface Rendering in Volume Data,0.90
+139,1,UAV Applications in Agriculture,0.85
+140,1,SAR Jamming Techniques,0.90
+141,1,Water Quality Assessment and Management,0.85
+142,1,Wind Comfort and Environmental Impact,0.85
+143,1,Electromagnetic Radiation Effects,0.85
+144,1,Geiparvarin Analogues in Cancer Research,0.85
+145,1,Millimeter-Wave Antenna Systems,0.85
+146,1,Aerosol Impact on Glaciers,0.85
+147,1,Automatic Ship Detection Systems,0.95
+148,1,Wake Detection in Polarimetric SAR Images,0.95
+149,1,Pixel-Based Classification in Remote Sensing,0.85
+150,1,Airborne Lidar for Tree Detection,0.85
+151,1,Space-Based Imaging Technologies,0.90
+152,1,Atmospheric Phenomena and Dust Events,0.85
+153,1,Cloud Systems and Precipitation Analysis,0.85
+154,1,Phase Estimation Techniques,0.85
+155,1,Evolutionary Measures in Image Processing,0.85
+156,1,Formal Verification in Aviation Protocols,0.85
+157,1,High-Precision Analog-to-Digital Converters,0.95
+158,1,Intelligent Vehicle Locomotion Patterns,0.95
+159,1,Cup Microstrip Antennas Optimization,0.95
+160,1,Optical Touch Keyboard Technologies,0.85
+161,1,SAR Trajectory Estimation Techniques,0.85
+162,1,Water Quality and Pollution Treatment,0.85
+163,1,Satellite Dispenser Design and Integration,0.85
+164,1,Coastal Dune Dynamics,0.95
+165,1,Low-Power Image Fusion Technologies,0.95
+166,1,Plant Defense Mechanisms and Proteins,0.95
+167,1,Urban Environment Characterization,0.95
+168,1,Satellite Remote Sensing Instruments,0.85
+169,1,Spectral Analysis in Remote Sensing,0.85
+170,1,Fault-Tolerant Neural Networks,0.95
+171,1,Satellite Remote Sensing of Water Quality,0.95
+172,1,Low-Cost Antenna Designs for Satellite Communications,0.95
+173,1,Optimizing Sensor Models with Genetic Algorithms,0.85
+174,1,Ultrasound Phased Array for Hyperthermia,0.95
+175,1,Natural Herbicides and Phytotoxicity,0.95
+176,1,Total Synthesis in Drug Discovery,0.85
+177,1,Satellite Communication Interference Management,0.85
+178,1,Groundwater Resource Management,0.85
+179,1,Wetland Management and Conservation,0.85
+180,1,Orbital Parameters in SAR Interferometry,0.85
+181,1,Soil Reinforcement Techniques,0.85
+182,1,Mobile Robot Localization and Navigation,0.85
+183,1,Wavelet Analysis in Radar Signal Processing,0.85
+184,1,Illumination Invariant Spectral Unmixing,0.90
+185,1,Methane Emission Uncertainty Analysis,0.85
+186,1,Wetland Water Table Measurement,0.95
+187,1,Spectral Analysis in Chemical Identification,0.85
+188,1,Advanced Antenna Design and Applications,0.95
+189,1,Conservation of Endangered Fish Species,0.95
+190,1,Digital Document Annotation Technologies,0.85
+191,1,Orthogonal Mechanisms and Robotics,0.95
+192,1,Image Fusion and Resolution Enhancement,0.85
+193,1,Preventive Technologies for Crisis Management,0.95
+194,1,Orbital Mechanics and Shape Dynamics,0.85
+195,1,African Rainfall Modeling and Analysis,0.85
+196,1,Controlled RF Exposure in Animal Experiments,0.85
+197,1,Oceanographic Monitoring under Cloudy Conditions,0.90
+198,1,Transposable Elements and Meiotic Recombination,0.85
+199,1,Fractal Antenna Design and Optimization,0.95
+200,1,Neural Networks in System Identification,0.85
+201,1,High Dynamics GNSS Applications,0.85
+202,1,Dynamic Tactical Networking Systems,0.85
+203,1,Quantifying Emissions Reductions in Projects,0.85
+204,1,Historical Astronomy and Latitude Measurements,0.85
+205,1,Automatic Differentiation Optimization,0.85
+206,1,Object Recognition and Neural Networks,0.95
+207,1,Feature-Aided Tracking in Radar Systems,0.85
+208,1,Aeronautical Communication Systems,0.85
+209,1,GPS Positioning Quality Assessment,0.85
+210,1,Climate Forecasting Using SST Anomalies,0.85
+211,1,Glacial Dynamics and Ice Stream Configuration,0.95
+212,1,Innovative Architectural Design,0.85
+213,1,Doppler Frequency Offset Estimation,0.85
+214,1,Sustainable Development of Large Lakes,0.85
+215,1,Bidirectional Semiconductor Lasers,0.85
+216,1,Environmental Impact Assessment,0.85
+217,1,Humidity Measurement in Gas-Insulated Equipment,0.85
+218,1,Neuropsychiatric Effects of Solvent Exposure,0.85
+219,1,Self-Affine Gravity Modeling,0.95
+220,1,ICT for Human Resource Development,0.85
+221,1,Centroid Fluctuations in Imaging,0.85
+222,1,Cluster-Plot Design and Correction Methods,0.85
+223,1,Automated Water Quality Monitoring,0.85
+224,1,Environmental Stress Assessment,0.85
+225,1,Remote Sensing and Surface Analysis,0.85
+226,1,Advancements in Quantum Computing,0.95
+227,1,Acoustic Remote Sensing Techniques,0.85
+228,1,Forest Resistance and GIS Integration,0.85
+229,1,Korean IT Leadership and Innovation,0.85
+230,1,Mesozoic Geological Processes in Antarctica,0.95
+231,1,Micrometeorological Aspects of Irrigation,0.85
+232,1,Marine Mapping and Seafloor Imaging,0.85
+233,1,Satellite Orbital Transportation Systems,0.85
+234,1,Dialect Topography and Isographic Analysis,0.85
+235,1,Shoulder Instability and Treatment,0.85
+236,1,Formation Control in Space Missions,0.85
+237,1,Home Networking Technologies,0.85
+238,1,Unknown Objects in Low Earth Orbit,0.85
+239,1,Kalman Filter Applications in Communication Systems,0.85
+240,1,Advanced Machine Learning Techniques,0.85
+241,1,Semiotics and Linguistic Analysis,0.85
+242,1,Space-Time Block Codes in Communication,0.85
+243,1,Advancements in Quantum Computing,0.95
+244,1,Amplifier Design and Performance Optimization,0.85
+245,1,Landslide Analysis Using Remote Sensing,0.95
+246,1,Neural Network Control Systems,0.85
+247,1,Real-Time Remote Sensing Image Processing,0.85
+248,1,Storm Surge Damage Assessment,0.95
+249,1,Image Enhancement in Remote Sensing,0.85
+250,1,Remote Sensing for Archaeological Detection,0.85
+251,1,Urban Remote Sensing for Land Use,0.85
+252,1,Urban Park Location Planning,0.85
+253,1,Remote Sensing and Regional Stability,0.95
+254,1,Advanced Machine Learning Techniques,0.85
+255,1,Geospatial Analysis in the UAE,0.85
+256,1,Advanced Machine Learning Techniques,0.85
+257,1,Overfitting Control in Genetic Programming,0.85
+258,1,Energy-Based Land-Surface Modelling,0.85
+259,1,Atmospheric Monitoring via Attenuation Measurements,0.85
+260,1,Remote Sensing and Delta Dynamics,0.95
+261,1,Depolarization in Remote Sensing,0.90
+262,1,Remote Sensing for Landscape Classification,0.85
+263,1,Advancements in Quantum Computing,0.85
+264,1,Remote Sensing and NDVI Analysis,0.85
+265,1,Tidal Flow Simulation in Estuaries,0.95
+266,1,Remote Chemical Detection Technologies,0.85
+267,1,Non-Carbon Based Life Research,0.85
+268,1,Riverine Ecosystems and Fish Populations,0.85
+269,1,Statistical Analysis of Forest Damage,0.85
+270,1,High-Sensitivity Infrared Imaging,0.85
+271,1,Health Impacts of Natural Disasters,0.85
+272,1,Interference in Remote Sensing,0.85
+273,1,FMCW Radar Design and Applications,0.85
+274,1,Wellspring Conservation in Limestone Areas,0.85
+275,1,Marine Mammal Collision Avoidance Systems,0.90
+276,1,Signal Processing and Classification Techniques,0.85
+277,1,Space-Based Remote Sensing Technologies,0.85
+278,1,Remote Sensing and BRDF Analysis,0.85
+279,1,Urban Vegetation Coverage Analysis,0.85
+280,1,Remote Sensing and Ecosystem Management,0.85
+281,1,Optical Data Consistency in Transistor Reliability,0.95
+282,1,Geographical Information Systems for Risk Assessment,0.85
+283,1,Electric Power Systems for Satellites,0.95
+284,1,Environmental Impact of Historical Agriculture,0.85
+285,1,Enhanced Neural Network Techniques,0.85
+286,1,Planetary Sprite Event Detection,0.90
+287,1,Tree Canopy Management in Orchards,0.85
+288,1,Microwave Vibration Measurement Technology,0.85
+289,1,GPS-based Atmospheric Water Vapor Sensing,0.95
+290,1,Lightning-Based Precipitation Forecasting,0.85
+291,1,Functional Data Analysis in Agriculture,0.85
+292,1,Frequency Agile Materials in Electronics,0.85
+293,1,Automated Information Extraction in Remote Sensing,0.85
+294,1,Passive Detection of Toxic Agents,0.95
+295,1,Soil Surface Characterization,0.95
+296,1,Forest Reserve Boundary Stability,0.90
+297,1,Real-time Data Processing for Aerospace,0.85
+298,1,Pioneering Weather Radar Research,0.90
+299,1,Gamma Ray Emission from Neutron Capture,0.95
+300,1,Classifier Fusion in Hyperspectral Imagery,0.90
+301,1,Remote Sensing for Urban Analysis,0.95
+302,1,Infrasonic Phenomena and Thunderstorm Activity,0.85
+303,1,Crown Cover Estimation Techniques,0.95
+304,1,Multispectral Imaging for Medical Detection,0.85
+305,1,Semantic Accuracy in Remote Sensing,0.85
+306,1,Multilevel Training Strategies for Tool Adoption,0.85
+307,1,Remote Sensing of Inundation,0.85
+308,1,Inverse Black-Body Radiation Solutions,0.85
+309,1,Coastal Water Quality Monitoring,0.85
+310,1,Mobile Ecosystem Monitoring,0.85
+311,1,Self-Reconfigurable Robotics and Docking,0.85
+312,1,Multispectral Imaging for Plant Water Analysis,0.85
+313,1,High-Latitude Climate Change Research,0.95
+314,1,Novelty Detection in Ocean Color Algorithms,0.85
+315,1,Geoscience Data Management,0.85
+316,1,Mars Exploration and Historical Observations,0.85
+317,1,Geohazard Monitoring and Prediction,0.95
+318,1,Vegetation Carbon and Water Fluxes,0.85
+319,1,Government Role in Industry Innovation,0.85
+320,1,Telescope Design and Performance Evaluation,0.95
+321,1,Spatial Coherence in Satellite Imagery,0.85
+322,1,Enhanced SOAP Protocols for Distributed Systems,0.85
+323,1,Proximity-Based Estimation in Signal Processing,0.85
+324,1,Environmental Monitoring of Sediment Plumes,0.85
+325,1,Environmental Impact of Fuel Spills,0.85
+326,1,Geomorphological Impact on Pollution,0.85
+327,1,Climate Variability in Arctic Ecosystems,0.85
+328,1,Spatial Variability in Evapotranspiration,0.95
+329,1,Soil Erosion Risk Mapping,0.95
+330,1,Lightning and Rainfall Correlation,0.85
+331,1,Remote Sensing of Agricultural Crops,0.85
+332,1,Digital Elevation Model Updating,0.85
+333,1,Visual Analytics in Archaeology,0.85
+`;
+
+      const KEYWORDS_JSONL = `{"topic_id": 0, "size": 46768, "keywords": ["classification", "data", "image", "detection", "method", "images", "based", "proposed", "hyperspectral", "spectral", "sensing", "remote", "model", "remote sensing", "land"], "representatives": [{"id": 444165, "year": 2017, "doi": "10.1117/1.JRS.11.026009", "title": "Assessing the performance of multiple spectral-spatial features of a hyperspectral image for classification of urban land cover classes using support vector machines and artificial neural network"}, {"id": 197962, "year": 2022, "doi": "10.1007/s12524-022-01563-2", "title": "A New Method for Object-Based Hyperspectral Image Classification"}, {"id": 12904, "year": 2025, "doi": "10.1016/j.rsase.2025.101727", "title": "Optimised multi-hierarchical feature fusion with multi-kernel CNN and spectral-spatial convolutions for remote sensing image classification"}, {"id": 1244, "year": 2025, "doi": "10.1109/ACCESS.2025.3526476", "title": "A Novel Remote Sensing Recognition Using Modified GMM Segmentation and DenseNet"}, {"id": 5572, "year": 2025, "doi": "10.3390/jimaging11060179", "title": "Optimizing Remote Sensing Image Retrieval Through a Hybrid Methodology"}]}
+{"topic_id": 1, "size": 44071, "keywords": ["forest", "data", "vegetation", "species", "land", "tree", "cover", "model", "using", "study", "based", "drought", "area", "biomass", "areas"], "representatives": [{"id": 54003, "year": 2025, "doi": "10.1080/20964471.2025.2459300", "title": "Estimating vegetation indices and biophysical parameters for Central European temperate forests with Sentinel-1 SAR data and machine learning"}, {"id": 376046, "year": 2015, "doi": "10.1016/j.foreco.2015.08.027", "title": "Remote sensing proxies of productivity and moisture predict forest stand type and recovery rate following experimental harvest"}, {"id": 182617, "year": 2019, "doi": "10.1016/j.rse.2019.02.021", "title": "Modeling tropical montane forest biomass, productivity and canopy traits with multispectral remote sensing data"}, {"id": 15935, "year": 2024, "doi": "10.1016/j.scitotenv.2024.173940", "title": "Mapping and analyzing the spatiotemporal dynamics of forest aboveground biomass in the ChangZhuTan urban agglomeration using a time series of Landsat images and meteorological data from 2010 to 2020"}, {"id": 191027, "year": 2019, "doi": "10.1016/j.rse.2019.01.027", "title": "Quantifying structural diversity to better estimate change at mountain forest margins"}]}
+{"topic_id": 2, "size": 43753, "keywords": ["land", "water", "data", "urban", "flood", "area", "study", "river", "model", "use", "areas", "changes", "using", "spatial", "based"], "representatives": [{"id": 6349, "year": 2024, "doi": "10.1016/j.envres.2023.117962", "title": "Climate uncertainty and vulnerability of urban flooding associated with regional risk using multi-criteria analysis in Mumbai, India"}, {"id": 48138, "year": 2023, "doi": "10.3390/su15097398", "title": "Assessing Coastal Land-Use and Land-Cover Change Dynamics Using Geospatial Techniques"}, {"id": 17705, "year": 2025, "doi": "10.1016/j.agwat.2024.109254", "title": "Surface water and flood-based agricultural systems: Mapping and modelling long-term variability in the Senegal river floodplain"}, {"id": 14837, "year": 2025, "doi": "10.1109/JSTARS.2025.3587519", "title": "Three Decades of Land Cover Dynamics in a Boreal Coastal Basin: A Multisensor Spectral Index and Machine Learning Approach Using Landsat Data and GB-SAR Data"}, {"id": 4841, "year": 2024, "doi": "10.1109/JSTARS.2024.3430505", "title": "Impact of Land Use/Land Cover Changes on Urban Flooding: A Case Study of the Greater Bay Area, China"}]}
+{"topic_id": 3, "size": 40753, "keywords": ["data", "sea", "water", "ocean", "surface", "model", "satellite", "wind", "wave", "using", "coastal", "results", "high", "based", "chlorophyll"], "representatives": [{"id": 729764, "year": 2002, "doi": "10.1016/S0034-4257(01)00335-2", "title": "Algal biomass and sea surface temperature in the Mediterranean Basin - Intercomparison of data from various satellite sensors, and implications for primary production estimates"}, {"id": 369624, "year": 2017, "doi": "10.3390/rs9040343", "title": "A Novel Statistical Approach for Ocean Colour Estimation of Inherent Optical Properties and Cyanobacteria Abundance in Optically Complex Waters"}, {"id": 564076, "year": 2011, "doi": "10.1016/j.seares.2010.08.002", "title": "Cloud filling of ocean colour and sea surface temperature remote sensing products over the Southern North Sea by the Data Interpolating Empirical Orthogonal Functions methodology"}, {"id": 171071, "year": 2020, "doi": "10.3390/rs12172774", "title": "Empirical Relationships between Remote-Sensing Reflectance and Selected Inherent Optical Properties in Nordic Sea Surface Waters for the MODIS and OLCI Ocean Colour Sensors"}, {"id": 405274, "year": 2016, "doi": "10.1117/12.2225875", "title": "High-resolution shipboard measurements of phytoplankton - a way forward for enhancing the utility of satellite SST and Chlorophyll for mapping microscale features and frontal zones in coastal waters"}]}
+{"topic_id": 4, "size": 34345, "keywords": ["aerosol", "lidar", "dust", "data", "ozone", "measurements", "model", "satellite", "air", "atmospheric", "emissions", "aod", "observations", "cloud", "based"], "representatives": [{"id": 614999, "year": 2008, "doi": "10.1016/j.atmosenv.2008.02.033", "title": "Radiative and dynamic effects of absorbing aerosol particles over the Pearl River Delta, China"}, {"id": 825982, "year": 2003, "doi": "10.1029/2002JD002717", "title": "Annual cycle of global distributions of aerosol optical depth from integration of MODIS retrievals and GOCART model simulations - art. no. 4128"}, {"id": 620675, "year": 2009, "doi": "10.1029/2009JD011895", "title": "Inferring the composition and concentration of aerosols by combining AERONET and MPLNET data: Comparison with other measurements and utilization to evaluate GCM output"}, {"id": 708358, "year": 2004, "doi": null, "title": "A mesoscale aerosol variability study in the Asian outflow region in support of calipso validation"}, {"id": 601165, "year": 2008, "doi": "10.5194/acp-8-737-2008", "title": "Capturing vertical profiles of aerosols and black carbon over the Indian Ocean using autonomous unmanned aerial vehicles"}]}
+{"topic_id": 5, "size": 34145, "keywords": ["satellite", "communication", "network", "proposed", "performance", "channel", "based", "data", "systems", "scheme", "paper", "networks", "signal", "modulation", "algorithm"], "representatives": [{"id": 487440, "year": 2016, "doi": "10.1002/sat.1172", "title": "Energy-efficient link resource allocation in the multibeam satellite downlink under QoS constraints"}, {"id": 94813, "year": 2025, "doi": "10.1109/JSAC.2024.3460064", "title": "Massive MIMO-OTFS-Based Random Access for Cooperative LEO Satellite Constellations"}, {"id": 105122, "year": 2025, "doi": "10.1007/s11277-025-11856-7", "title": "DVB-RCS2 Satellite Link Optimization for Efficient Data Transmission Using Cascaded Coding Approach in MIMO-OFDM System"}, {"id": 114904, "year": 2025, "doi": "10.1109/AERO63441.2025.11068483", "title": "Enhancing Space Situational Awareness: Robust Millimeter-Wave Satellite Communication Solutions"}, {"id": 113632, "year": 2024, "doi": "10.1109/ICCC62479.2024.10681896", "title": "Closed-Form Outage Probability Analysis For OTFS-Based Multi-Beam LEO Satellites"}]}
+{"topic_id": 6, "size": 34002, "keywords": ["satellite", "space", "control", "based", "method", "design", "model", "orbit", "paper", "satellites", "attitude", "proposed", "time", "using", "results"], "representatives": [{"id": 544099, "year": 2013, "doi": null, "title": "OPTIMAL MAINTENANCE OF RELATIVE CIRCULAR INERTIAL MOTION FOR NULLING INTERFEROMETRY APPLICATIONS"}, {"id": 789377, "year": 2002, "doi": null, "title": "Modeling and control - Flexible structure spacecraft"}, {"id": 219994, "year": 2022, "doi": "10.1109/AERO53065.2022.9843283", "title": "Dynamics and Control of Helical Arrays in Low Earth Orbit"}, {"id": 109579, "year": 2023, "doi": "10.1063/5.0150095", "title": "Study on stability of formation for gravity field exploration subjected to disturbance based on prescribed performance control"}, {"id": 778640, "year": 2003, "doi": null, "title": "Nonlinear dynamics of the small-mass gyromoment AOCS with plasma thrusters for communication satellites"}]}
+{"topic_id": 7, "size": 32852, "keywords": ["patients", "study", "constellation", "based", "clinical", "treatment", "social", "data", "syndrome", "satellite", "research", "analysis", "disease", "results", "different"], "representatives": [{"id": 547915, "year": 2014, "doi": "10.1371/journal.pone.0110271", "title": "Social Determinants and the Classification of Disease: Descriptive Epidemiology of Selected Socially Mediated Disease Constellations"}, {"id": 350495, "year": 2021, "doi": "10.1186/s13195-021-00846-z", "title": "Brain connectivity and metacognition in persons with subjective cognitive decline (COSCODE): rationale and study design"}, {"id": 161350, "year": 2025, "doi": "10.1017/gmh.2025.16", "title": "Symptom networks of common mental disorders in public versus private healthcare settings in India"}, {"id": 159815, "year": 2025, "doi": "10.1136/bmjopen-2024-092612", "title": "Pathway Of Low Anterior Resection syndrome (LARS) relief after Surgery (POLARiS)<bold>:</bold> protocol for an international, open-label, multi-arm, phase 3 randomised superiority trial within a cohort, with economic evaluation, process evaluation and qualitative sub-study, to explore the natural history of LARS and compare transanal irrigation and sacral neuromodulation to optimised conservative management for people with major LARS following a high or low anterior resection for colorectal cancer"}, {"id": 219123, "year": 2020, "doi": "10.2196/22756", "title": "Informing the Development of a Digital Health Platform Through Universal Points of Care: Qualitative Survey Study"}]}
+{"topic_id": 8, "size": 32775, "keywords": ["imaging", "spectral", "optical", "based", "hyperspectral", "high", "data", "sensor", "image", "infrared", "using", "detection", "method", "images", "used"], "representatives": [{"id": 454118, "year": 2018, "doi": "10.1117/12.2291751", "title": "Portable LWIR hyperspectral imager based on a MEMS Fabry-Perot interferometer and a broadband microbolometric detector array"}, {"id": 82286, "year": 2023, "doi": "10.3788/gzxb20235205.0552223", "title": "Development of Snapshot Hyperspectral Imager Based on Microlens Array"}, {"id": 794926, "year": 2000, "doi": "10.1255/jnirs.266", "title": "Visualising chemical composition and reaction kinetics by the near infrared multispectral imaging technique"}, {"id": 204510, "year": 2019, "doi": "10.1117/12.2510555", "title": "Optimization of Light Transmission through an Excitation-scan Hyperspectral Mirror Array System"}, {"id": 157386, "year": 2025, "doi": "10.3788/AOS241230", "title": "Design and Realization of Spectral Imaging Systems Based on Microlens Arrays"}]}
+{"topic_id": 9, "size": 31936, "keywords": ["cloud", "precipitation", "data", "rainfall", "satellite", "model", "clouds", "water", "based", "observations", "surface", "radar", "temperature", "using", "results"], "representatives": [{"id": 906030, "year": 2003, "doi": "10.1175/1520-0493(2003)131<1240:MRACOO>2.0.CO;2", "title": "Model rain and clouds over oceans: Comparison with SSM/I observations"}, {"id": 225668, "year": 2021, "doi": "10.1007/s00703-020-00765-y", "title": "Impacts of satellite data assimilation with different model vertical levels on QPFs downstream of the Tibetan Plateau"}, {"id": 590604, "year": 2011, "doi": "10.1175/2011JHM1257.1", "title": "Satellite and Numerical Model Investigation of Two Heavy Rain Events over the Central Mediterranean"}, {"id": 716914, "year": 2001, "doi": "10.1029/2000JD900478", "title": "A method for assessing the quality of model-based estimates of ground temperature and atmospheric moisture using satellite data"}, {"id": 591882, "year": 2008, "doi": null, "title": "Combined IR-microwave satellite retrieval of temperature and moisture profiles using the ICI inversion system and its application in the MM5 model"}]}
+{"topic_id": 10, "size": 31740, "keywords": ["data", "lidar", "point", "based", "3d", "method", "detection", "road", "proposed", "using", "information", "object", "cloud", "sensor", "model"], "representatives": [{"id": 261151, "year": 2022, "doi": "10.1155/2022/2771085", "title": "Roadside LiDAR Vehicle Detection and Tracking Using Range and Intensity Background Subtraction"}, {"id": 48449, "year": 2023, "doi": "10.3788/AOS240817", "title": "Laser Simultaneous Localization and Mapping Algorithm Based on Optimized Ground Segmentation and Closed-Loop Detection"}, {"id": 454071, "year": 2018, "doi": "10.33012/2018.15958", "title": "Modeling and Understanding LiDAR Data for Absolute and Relative Positioning"}, {"id": 75717, "year": 2023, "doi": "10.1109/ISCAS46773.2023.10181371", "title": "Aerial LiDAR-based 3D Object Detection and Tracking for Traffic Monitoring"}, {"id": 96813, "year": 2024, "doi": "10.1088/1361-6501/ad646c", "title": "A dynamic object removing 3D reconstruction system based on multi-sensor fusion"}]}
+{"topic_id": 11, "size": 30796, "keywords": ["sar", "data", "radar", "method", "target", "imaging", "detection", "proposed", "image", "based", "images", "algorithm", "aperture", "paper", "range"], "representatives": [{"id": 212415, "year": 2019, "doi": "10.3390/s19071649", "title": "A Data-Driven Approach to SAR Data-Focusing"}, {"id": 199217, "year": 2021, "doi": null, "title": "SIMULATION OF AUTOMATIC TARGET RECOGNITION IN HIGH SPEED MANEUVERING ENVIRONMENT BASED ON SAR IMAGING"}, {"id": 242567, "year": 2022, "doi": "10.3390/app12178922", "title": "Target-Oriented High-Resolution and Wide-Swath Imaging with an Adaptive Receiving-Processing-Decision Feedback Framework"}, {"id": 422481, "year": 2017, "doi": null, "title": "Analysis of Synthetic Aperture Radar Image Enchancement Algorithm"}, {"id": 596235, "year": 2009, "doi": "10.1007/978-1-4020-8883-4_29", "title": "SHIP DETECTION AND CHARACTERIZATION USING POLARIMETRIC SAR DATA"}]}
+{"topic_id": 12, "size": 29063, "keywords": ["data", "crop", "model", "yield", "using", "spectral", "based", "lai", "vegetation", "models", "hyperspectral", "rice", "study", "leaf", "used"], "representatives": [{"id": 65079, "year": 2024, "doi": "10.1016/j.asr.2022.11.047", "title": "Retrieval of crop biophysical-biochemical variables from airborne AVIRIS-NG data using hybrid inversion of PROSAIL-D"}, {"id": 406996, "year": 2018, "doi": "10.3390/rs10071138", "title": "A Comparison of Crop Parameters Estimation Using Images from UAV-Mounted Snapshot Hyperspectral Sensor and High-Definition Digital Camera"}, {"id": 173934, "year": 2022, "doi": "10.1016/j.biosystemseng.2022.08.005", "title": "High-resolution multispectral imagery and LiDAR point cloud fusion for the discrimination and biophysical characterisation of vegetable crops at different levels of nitrogen"}, {"id": 18484, "year": 2024, "doi": "10.1016/j.compag.2024.108942", "title": "Estimation of wheat biophysical variables through UAV hyperspectral remote sensing using machine learning and radiative transfer models"}, {"id": 44391, "year": 2024, "doi": "10.3390/agriculture14071110", "title": "Unmanned Aerial Vehicle-Measured Multispectral Vegetation Indices for Predicting LAI, SPAD Chlorophyll, and Yield of Maize"}]}
+{"topic_id": 13, "size": 23048, "keywords": ["activity", "compounds", "sar", "inhibitors", "structure", "compound", "series", "derivatives", "potent", "mu", "receptor", "binding", "cell", "studies", "new"], "representatives": [{"id": 296540, "year": 2022, "doi": "10.1016/j.molstruc.2022.133587", "title": "An efficient p-TSA catalyzed synthesis of some new substituted- (5-hydroxy-3-phenylisoxazol-4-yl)-1,3-dimethyl-1 H-chromeno[2,3-d] pyrimidine-2,4(3H,5H)-dione/3,3-dimethyl-2H-xanthen-1(9H)-one scaffolds and evaluation of their pharmacological and computational investigations"}, {"id": 149584, "year": 2024, "doi": "10.3390/molecules29143387", "title": "Design, Synthesis, and Characterization of Novel Thiazolidine-2,4-Dione-Acridine Hybrids as Antitumor Agents"}, {"id": 629203, "year": 2010, "doi": "10.1016/j.bmcl.2010.07.009", "title": "Discovery of substituted benzyl tetrazoles as histamine H3 receptor antagonists"}, {"id": 481037, "year": 2017, "doi": "10.1016/j.ejmech.2017.01.044", "title": "Dregamine and tabernaemontanine derivatives as ABCB1 modulators on resistant cancer cells"}, {"id": 643077, "year": 2010, "doi": "10.1021/jm901184n", "title": "Development of (S)-N6-(2-(4-(Isoquinolin-1-yl)piperazin-1-yl)ethyl)-N6-propyl-4,5,6, 7-tetrahydrobenzo[d]-thiazole-2,6-diamine and Its Analogue as a D3 Receptor Preferring Agonist: Potent in Vivo Activity in Parkinson's Disease Animal Models"}]}
+{"topic_id": 14, "size": 22366, "keywords": ["gnss", "positioning", "navigation", "satellite", "gps", "time", "method", "based", "accuracy", "signal", "data", "proposed", "receiver", "frequency", "signals"], "representatives": [{"id": 112257, "year": 2024, "doi": "10.1109/ICEENG58856.2024.10566432", "title": "Evaluation of Code & Carrier based GNSS Positioning Techniques for Positioning Accuracy Using Low Cost GNSS Receivers"}, {"id": 152693, "year": 2025, "doi": "10.3390/electronics14050826", "title": "Robust Regression and Redundant Measurement Noise Estimation Adaptive Filtering for Localization in Urban Environments"}, {"id": 462694, "year": 2014, "doi": null, "title": "The Use of Multiple GNSS Constellations with Strict Quality Constraints for Achieving High Accuracy in Urban Environments"}, {"id": 100310, "year": 2025, "doi": "10.1088/1361-6501/ae035b", "title": "Performance analysis of geostationary orbit satellite autonomous orbit determination algorithm based on few Global Navigation Satellite System satellites"}, {"id": 116220, "year": 2023, "doi": "10.1155/2023/6709989", "title": "Analysis of Multifrequency GNSS Signals and an Improved Single-Epoch RTK Method for Medium-Long Baseline"}]}
+{"topic_id": 15, "size": 20903, "keywords": ["ray", "galaxies", "mass", "similar", "stars", "satellite", "data", "10", "galaxy", "energy", "high", "based", "space", "star", "gamma"], "representatives": [{"id": 100664, "year": 2024, "doi": "10.3847/1538-4357/ad3076", "title": "Gas and Star Formation in Satellites of Milky Way Analogs"}, {"id": 533915, "year": 2016, "doi": "10.3847/0004-637X/827/2/108", "title": "MEASUREMENTS OF EXTRAGALACTIC BACKGROUND LIGHT FROM THE FAR UV TO THE FAR IR FROM DEEP GROUND- AND SPACE-BASED GALAXY COUNTS"}, {"id": 756533, "year": 1991, "doi": null, "title": "GALAXY COUNTS AND CONTRIBUTIONS TO THE BACKGROUND-RADIATION FROM 1 MU-M TO 1000 MU-M"}, {"id": 659407, "year": 2010, "doi": "10.1088/0004-637X/720/2/1772", "title": "ON THE MORPHOLOGY OF THE ELECTRON-POSITRON ANNIHILATION EMISSION AS SEEN BY SPI/INTEGRAL"}, {"id": 343461, "year": 2022, "doi": "10.3847/1538-4357/ac9b19", "title": "Is the Core-cusp Problem a Matter of Perspective? Jeans Anisotropic Modeling against Numerical Simulations"}]}
+{"topic_id": 16, "size": 20216, "keywords": ["solar", "field", "magnetic", "data", "model", "ionospheric", "satellite", "plasma", "electron", "density", "ionosphere", "time", "observed", "tec", "observations"], "representatives": [{"id": 415743, "year": 2017, "doi": "10.1016/j.asr.2016.11.031", "title": "Ionospheric electron density perturbations during the 7-10 March 2012 geomagnetic storm period"}, {"id": 843913, "year": 2002, "doi": "10.1029/2001JA900174", "title": "Testing global storm-time electric field models using particle spectra on multiple spacecraft - art. no. 1194"}, {"id": 313706, "year": 2022, "doi": "10.3390/atmos13040518", "title": "Low-Latitude Ionospheric Responses and Coupling to the February 2014 Multiphase Geomagnetic Storm from GNSS, Magnetometers, and Space Weather Data"}, {"id": 898773, "year": 2005, "doi": "10.5194/angeo-23-1867-2005", "title": "A case study testing the cavity mode model of the magnetosphere"}, {"id": 702846, "year": 1996, "doi": "10.1007/s005850050398", "title": "Global modelling study (GSM TIP) of the ionospheric effects of excited N-2, convection and heat fluxes by comparison with EISCAT and satellite data for 31 July 1990"}]}
+{"topic_id": 17, "size": 17652, "keywords": ["data", "fault", "gravity", "earthquake", "satellite", "model", "slip", "time", "surface", "volcanic", "deformation", "using", "field", "grace", "km"], "representatives": [{"id": 419149, "year": 2018, "doi": "10.1016/j.geog.2017.09.005", "title": "Goce derived geoid changes before the Pisagua 2014 earthquake"}, {"id": 499045, "year": 2015, "doi": "10.1016/j.jsames.2015.09.014", "title": "Gradients from GOCE reveal gravity changes before Pisagua Mw=8.2 and Iquique Mw=7.7 large megathrust earthquakes"}, {"id": 829813, "year": 1997, "doi": null, "title": "The Antofagasta 1995 earthquake: Crustal deformation pattern as observed by GPS and D-INSAR"}, {"id": 228418, "year": 2021, "doi": "10.3389/feart.2020.581396", "title": "Megathrust Slip Behavior for Great Earthquakes Along the Sumatra-Andaman Subduction Zone Mapped From Satellite GOCE Gravity Field Derivatives"}, {"id": 521951, "year": 2014, "doi": "10.1093/gji/ggu315", "title": "Ocean contribution to seismic gravity changes: the sea level equation for seismic perturbations revisited"}]}
+{"topic_id": 18, "size": 17379, "keywords": ["ice", "snow", "sea", "glacier", "sea ice", "data", "surface", "glaciers", "model", "cover", "area", "water", "using", "satellite", "arctic"], "representatives": [{"id": 37910, "year": 2023, "doi": "10.5194/tc-17-4903-2023", "title": "Combined GNSS reflectometry-refractometry for automated and continuous in situ surface mass balance estimation on an Antarctic ice shelf"}, {"id": 925637, "year": 2005, "doi": null, "title": "New results on the changing cryosphere from geostatistical interpolation and classification of first and second order spatial variables"}, {"id": 251615, "year": 2022, "doi": "10.1016/j.rse.2022.113307", "title": "Uncertainty of ICESat-2 ATL06-and ATL08-derived snow depths for glacierized and vegetated mountain regions"}, {"id": 541777, "year": 2016, "doi": "10.1080/07038992.2016.1166043", "title": "Variations of Annual Minimum Snow and Ice Extent over Canada and Neighboring Landmass Derived from MODIS 250-m Imagery for 2000-2014"}, {"id": 862204, "year": 1991, "doi": null, "title": "OPERATIONAL SATELLITES AND THE GLOBAL MONITORING OF SNOW AND ICE"}]}
+{"topic_id": 19, "size": 16681, "keywords": ["data", "information", "remote", "sensing", "based", "remote sensing", "geospatial", "satellite", "spatial", "paper", "earth", "image", "processing", "analysis", "time"], "representatives": [{"id": 665973, "year": 2008, "doi": "10.1109/VECIMS.2008.4592757", "title": "Virtual Data Warehouse Architecture for Real-Time WebGIS"}, {"id": 371350, "year": 2014, "doi": null, "title": "Using Space-based Downstream Services for Urban Management in Smart Cities"}, {"id": 939373, "year": 2002, "doi": null, "title": "Virtual remote sensing: A holistic modeling approach"}, {"id": 367042, "year": 2016, "doi": "10.1117/12.2243059", "title": "Environmental monitoring in peat bog areas by change detection methods"}, {"id": 387492, "year": 2018, "doi": "10.1080/17538947.2017.1326984", "title": "Ad-hoc combination and analysis of heterogeneous and distributed spatial data for environmental monitoring - design and prototype of a web-based solution"}]}
+{"topic_id": 20, "size": 16481, "keywords": ["soil", "groundwater", "water", "data", "study", "area", "spectral", "using", "model", "used", "quality", "potential", "remote", "based", "results"], "representatives": [{"id": 78890, "year": 2023, "doi": "10.1016/j.marpolbul.2022.114555", "title": "Remote sensing and statistical analyses for exploration and prediction of soil salinity in a vulnerable area to seawater intrusion"}, {"id": 172641, "year": 2021, "doi": "10.1016/j.rsase.2021.100498", "title": "Application of remote sensing indices to digital soil salt composition and ionic strength mapping in the east shore of Urmia Lake, Iran"}, {"id": 215449, "year": 2020, "doi": "10.1007/s12665-020-09235-5", "title": "Geospatial applications in delineating groundwater prospect zones in a hard rock terrain: an integrated approach"}, {"id": 11710, "year": 2023, "doi": "10.32604/phyton.2023.027267", "title": "Sentinel-2 Satellite Imagery Application to Monitor Soil Salinity and Calcium Carbonate Contents in Agricultural Fields"}, {"id": 177039, "year": 2022, "doi": "10.1016/j.scitotenv.2022.157416", "title": "Multidimensional soil salinity data mining and evaluation from different satellites"}]}
+{"topic_id": 21, "size": 15118, "keywords": ["image", "images", "resolution", "fusion", "data", "spectral", "spatial", "method", "proposed", "noise", "based", "compression", "high", "algorithm", "sensing"], "representatives": [{"id": 374868, "year": 2018, "doi": "10.1117/12.2307623", "title": "Pansharpening of images acquired with color filter arrays"}, {"id": 364894, "year": 2017, "doi": "10.1049/iet-spr.2016.0141", "title": "HS remote sensing image restoration using fusion with MS images by EM algorithm"}, {"id": 362006, "year": 2018, "doi": "10.1117/1.JRS.12.035017", "title": "Spectral preservation fusion for remote sensing images using focus measure operators based on fast discrete curvelet transform and hyperspherical color space"}, {"id": 406734, "year": 2018, "doi": "10.1016/j.isprsjprs.2018.10.009", "title": "Sparsity inspired pan-sharpening technique using multi-scale learned dictionary"}, {"id": 45754, "year": 2025, "doi": "10.1088/2631-8695/ae0869", "title": "Hybrid denoising framework with deep learning and optimization for mixed noise removal in remote sensing images"}]}
+{"topic_id": 22, "size": 14848, "keywords": ["soil", "moisture", "soil moisture", "data", "water", "surface", "model", "et", "sm", "vegetation", "land", "using", "based", "satellite", "irrigation"], "representatives": [{"id": 217882, "year": 2021, "doi": "10.3390/rs13244968", "title": "Improvement of the Soil Moisture Retrieval Procedure Based on the Integration of UAV Photogrammetry and Satellite Remote Sensing Information"}, {"id": 593382, "year": 2010, "doi": "10.1117/12.865096", "title": "Surface soil humidity retrieval by means of a semi-empirical coupled SAR model"}, {"id": 738894, "year": 2002, "doi": "10.1029/2001JD000958", "title": "Modeling approaches to assimilating L band passive microwave observations over land surfaces - art. no. 4219"}, {"id": 40496, "year": 2024, "doi": "10.1007/s10668-023-03635-w", "title": "Surface soil moisture estimate from Sentinel-1 and Sentinel-2 data in agricultural fields in areas of high vulnerability to climate variations: the Marche region (Italy) case study"}, {"id": 939832, "year": 2004, "doi": "10.1117/12.565239", "title": "Surface soil moisture retrieval on agricultural catchments of Navarre, Spain through RADARSAT-1 SAR data:: first results"}]}
+{"topic_id": 23, "size": 13869, "keywords": ["landslide", "deformation", "data", "subsidence", "insar", "landslides", "phase", "sar", "area", "method", "monitoring", "study", "using", "model", "based"], "representatives": [{"id": 249001, "year": 2021, "doi": "10.1016/j.rse.2021.112400", "title": "InSAR monitoring of creeping landslides in mountainous regions: A case study in Eldorado National Forest, California"}, {"id": 70390, "year": 2024, "doi": "10.3390/app14041632", "title": "Landslide Detection Based on Multi-Direction Phase Gradient Stacking, with Application to Zhouqu, China"}, {"id": 252922, "year": 2022, "doi": "10.3390/rs14071759", "title": "InSAR Study of Landslides: Early Detection, Three-Dimensional, and Long-Term Surface Displacement Estimation-A Case of Xiaojiang River Basin, China"}, {"id": 42497, "year": 2023, "doi": "10.4408/IJEGE.2023-01.S-11", "title": "ASSESSMENT OF MT-INSAR PROCESSING TECHNIQUES FOR SLOW-MOVING LANDSLIDES MONITORING IN CUENCA (ECUADOR) THROUGH DOUBLE-BAND SAR SATELLITE"}, {"id": 443626, "year": 2018, "doi": "10.1016/j.enggeo.2018.04.015", "title": "Detection and displacement characterization of landslides using multi- temporal satellite SAR interferometry: A case study of Danba County in the Dadu River Basin"}]}
+{"topic_id": 24, "size": 13825, "keywords": ["urban", "lst", "data", "temperature", "surface", "land", "calibration", "model", "heat", "satellite", "reflectance", "method", "thermal", "using", "study"], "representatives": [{"id": 245746, "year": 2019, "doi": "10.1109/piers-spring46901.2019.9017315", "title": "Assessment of the Urban Three-dimensional Structural Influence on the Satellite Thermal Infrared Measurement"}, {"id": 558707, "year": 2011, "doi": "10.1016/j.rse.2011.01.004", "title": "Estimation of subpixel land surface temperature using an endmember index based technique: A case examination on ASTER and MODIS temperature products over a heterogeneous area"}, {"id": 55340, "year": 2024, "doi": "10.3390/atmos15050551", "title": "Assessing Satellite Data's Role in Substituting Ground Measurements for Urban Surfaces Characterization: A Step towards UHI Mitigation"}, {"id": 434206, "year": 2014, "doi": "10.1016/j.rse.2014.03.016", "title": "Validation of remotely sensed surface temperature over an oak woodland landscape - The problem of viewing and illumination geometries"}, {"id": 400019, "year": 2018, "doi": "10.3390/rs10050736", "title": "Modeling the Distributions of Brightness Temperatures of a Cropland Study Area Using a Model that Combines Fast Radiosity and Energy Budget Methods"}]}
+`;
+
+      const SIMILARITY_CSV = `topic_a,topic_b,similarity
+0,21,0.9253022074699402
+0,33,0.8785455226898193
+0,10,0.8574687242507935
+0,19,0.818449854850769
+0,11,0.8178533911705017
+0,41,0.8047038316726685
+0,12,0.796820342540741
+0,8,0.7754999399185181
+0,1,0.7519611120223999
+0,24,0.7474970817565918
+1,2,0.8865021467208862
+1,12,0.8740954995155334
+1,22,0.8571639657020569
+1,31,0.8533276319503784
+1,24,0.8431916236877441
+1,20,0.8321366310119629
+1,37,0.7885591983795166
+1,9,0.7858342528343201
+1,23,0.7829433679580688
+1,3,0.7827215194702148
+2,20,0.8757752180099487
+2,23,0.850419282913208
+2,22,0.8350144028663635
+2,3,0.8250402212142944
+2,19,0.8086751103401184
+2,24,0.8004660606384277
+2,18,0.785577118396759
+2,17,0.7784126400947571
+2,12,0.7782026529312134
+3,9,0.8539096117019653
+3,22,0.8404350876808167
+3,18,0.8282891511917114
+3,4,0.8259474039077759
+3,24,0.811735212802887
+3,39,0.8077635169029236
+3,17,0.7992275953292847
+3,20,0.7915365099906921
+4,9,0.8870216608047485
+4,24,0.8615887761116028
+4,22,0.8158358335494995
+4,16,0.7918683886528015
+4,37,0.7798715829849243
+4,18,0.7657873034477234
+4,31,0.7571404576301575
+4,17,0.7570757865905762
+5,14,0.8143439888954163
+5,6,0.7985314130783081
+5,28,0.7884603142738342
+5,11,0.7449405789375305
+5,25,0.740825891494751
+5,19,0.6975479125976562
+5,21,0.6868026852607727
+5,8,0.6849405765533447
+5,33,0.6784104704856873
+6,14,0.8182580471038818
+6,19,0.750801682472229
+6,25,0.7427613735198975
+6,11,0.7363841533660889
+6,30,0.7348697185516357
+6,10,0.7282536625862122
+6,33,0.7279344201087952
+6,8,0.7216796278953552
+6,16,0.719841480255127
+7,40,0.7244952917098999
+7,38,0.7112624645233154
+7,27,0.7013206481933594
+7,19,0.6757240295410156
+7,26,0.6717029213905334
+7,8,0.6609532237052917
+7,34,0.6526525020599365
+7,13,0.6508517861366272
+7,35,0.6474394798278809
+8,25,0.8516261577606201
+8,21,0.8042544722557068
+8,11,0.7941427230834961
+8,33,0.7737529873847961
+8,29,0.7585815787315369
+8,12,0.7527271509170532
+8,24,0.7489237785339355
+8,10,0.7367668151855469
+8,19,0.734015703201294
+9,22,0.8942283391952515
+9,24,0.8805562257766724
+9,18,0.8260312676429749
+9,37,0.8246875405311584
+9,16,0.8053604960441589
+9,17,0.7985054850578308
+10,33,0.8648611307144165
+10,19,0.8244063854217529
+10,11,0.7983247637748718
+10,21,0.787279486656189
+10,23,0.7678930759429932
+10,14,0.7641852498054504
+10,25,0.748027503490448
+11,33,0.8571269512176514
+11,21,0.84324711561203
+11,25,0.7814110517501831
+11,23,0.7772122621536255
+11,19,0.7580322623252869
+11,14,0.7576926946640015
+12,22,0.8479377627372742
+12,20,0.8160759210586548
+12,24,0.8065560460090637
+12,37,0.7752041816711426
+12,33,0.7572546601295471
+13,26,0.6975035071372986
+13,176,0.6555173397064209
+13,144,0.6515645980834961
+13,27,0.6202837228775024
+13,175,0.6146080493927002
+13,29,0.5839190483093262
+13,49,0.5792005062103271
+13,34,0.5501814484596252
+14,33,0.7710273265838623
+14,19,0.7385721206665039
+14,25,0.7300823330879211
+14,209,0.716747522354126
+14,17,0.7026445269584656
+14,23,0.7017027735710144
+15,30,0.8010936379432678
+15,16,0.7933809757232666
+15,29,0.7317967414855957
+15,17,0.7088048458099365
+15,25,0.6958081126213074
+15,24,0.6418413519859314
+16,30,0.7952247858047485
+16,17,0.7948479652404785
+16,37,0.7320859432220459
+16,24,0.7239372730255127
+16,29,0.7207595705986023
+17,23,0.86628258228302
+17,18,0.8065087795257568
+17,20,0.7817883491516113
+17,22,0.770809531211853
+17,30,0.7697322368621826
+18,22,0.8062725067138672
+18,23,0.7947471141815186
+18,24,0.7872437834739685
+18,20,0.7306552529335022
+19,33,0.8364794850349426
+19,23,0.8028221130371094
+19,24,0.780271589756012
+19,37,0.7789359092712402
+19,22,0.7768694162368774
+19,21,0.7710431218147278
+20,22,0.8388116955757141
+20,23,0.812977135181427
+20,35,0.8036069869995117
+20,24,0.7855020761489868
+21,33,0.8765466213226318
+21,41,0.7796688079833984
+21,24,0.7187824845314026
+21,23,0.7159748673439026
+22,24,0.897252082824707
+22,37,0.832798957824707
+23,33,0.8130511045455933
+23,35,0.7742037773132324
+24,37,0.8609868288040161
+25,33,0.7179180383682251
+25,29,0.7037075161933899
+26,27,0.7089672684669495
+26,38,0.6841854453086853
+26,29,0.5707626938819885
+26,32,0.561694860458374
+26,198,0.5363190174102783
+27,34,0.5580548048019409
+27,49,0.5418205261230469
+27,38,0.5135074853897095
+27,40,0.498140811920166
+27,32,0.4979143738746643
+28,89,0.7525746822357178
+28,81,0.7299407124519348
+28,172,0.7289273738861084
+28,34,0.7256024479866028
+28,69,0.7153490781784058
+28,105,0.7003678679466248
+28,109,0.6991168260574341
+29,30,0.6979666352272034
+29,34,0.6253350973129272
+31,37,0.7127242684364319
+32,38,0.660338819026947
+32,39,0.6327863931655884
+32,216,0.613688588142395
+32,35,0.600882887840271
+34,143,0.6706706881523132
+34,196,0.613840639591217
+36,103,0.8285008072853088
+36,157,0.7862680554389954
+36,96,0.7361161112785339
+36,99,0.7116652727127075
+38,44,0.6883943676948547
+38,40,0.6632125377655029
+40,87,0.5969949960708618
+47,277,0.45796048641204834
+47,185,0.4532289505004883
+48,272,0.44031667709350586
+50,87,0.5098288655281067
+50,152,0.49562346935272217
+50,146,0.48161107301712036
+51,78,0.5639631748199463
+51,73,0.5532376170158386
+51,57,0.5067203044891357
+51,58,0.4887620210647583
+51,62,0.4750690460205078
+52,61,0.4763869047164917
+52,256,0.4753164052963257
+52,55,0.4725809097290039
+53,246,0.4368993043899536
+54,55,0.40575289726257324
+54,78,0.3874680995941162
+54,200,0.3808462619781494
+54,58,0.3780566453933716
+54,173,0.37138044834136963
+55,58,0.5025889873504639
+55,118,0.49254655838012695
+56,71,0.6079908609390259
+57,78,0.5477092862129211
+57,62,0.5357002019882202
+57,206,0.5263291001319885
+57,73,0.5214331150054932
+58,206,0.49386805295944214
+58,78,0.4924006462097168
+59,73,0.48165106773376465
+61,247,0.55800861120224
+61,78,0.5458370447158813
+61,118,0.5446202158927917
+62,76,0.5152625441551208
+62,122,0.5148835182189941
+62,78,0.5085645914077759
+64,73,0.47556376457214355
+65,130,0.546639084815979
+66,207,0.46024811267852783
+67,326,0.45714640617370605
+69,137,0.5715113878250122
+69,77,0.5478390455245972
+69,89,0.5474228858947754
+69,81,0.5233451128005981
+69,172,0.5224259495735168
+70,71,0.47290194034576416
+70,150,0.4314534068107605
+73,78,0.5180177092552185
+74,78,0.48567867279052734
+75,91,0.44603848457336426
+75,249,0.4302132725715637
+76,193,0.5059988498687744
+76,118,0.49669092893600464
+77,137,0.5921548008918762
+77,172,0.4651573896408081
+79,120,0.520020067691803
+80,328,0.5837807655334473
+81,89,0.5745702385902405
+81,199,0.531920850276947
+81,109,0.5184100270271301
+81,95,0.5064852833747864
+81,100,0.4993398189544678
+82,201,0.5173115134239197
+83,329,0.5420440435409546
+83,119,0.536434531211853
+85,245,0.5460833311080933
+87,146,0.546908438205719
+88,121,0.5691497325897217
+89,199,0.5701295733451843
+89,109,0.563956618309021
+89,172,0.5503225326538086
+89,95,0.550078809261322
+89,105,0.5427832007408142
+90,323,0.48802798986434937
+90,300,0.4850788116455078
+93,149,0.5228606462478638
+93,125,0.5196143984794617
+94,224,0.563357412815094
+95,105,0.5746630430221558
+95,199,0.48902809619903564
+95,172,0.48444288969039917
+95,109,0.4787939190864563
+96,103,0.5978460311889648
+96,157,0.5674377083778381
+96,99,0.47249358892440796
+96,273,0.437984824180603
+97,310,0.43745315074920654
+98,300,0.5316892862319946
+99,157,0.6153339147567749
+99,103,0.5493424534797668
+99,136,0.33544373512268066
+100,172,0.46653473377227783
+100,199,0.4648948907852173
+101,130,0.5432170629501343
+101,291,0.45505523681640625
+102,227,0.4682302474975586
+103,157,0.6693390607833862
+104,173,0.5683457851409912
+105,172,0.5557391047477722
+105,199,0.4871171712875366
+105,159,0.4683002829551697
+105,145,0.467085599899292
+106,152,0.48440468311309814
+107,290,0.4875049591064453
+107,153,0.4799516797065735
+107,112,0.4743826389312744
+108,265,0.42710554599761963
+108,326,0.4103745222091675
+109,172,0.5469606518745422
+109,199,0.4987417459487915
+109,137,0.4831550121307373
+109,145,0.47906357049942017
+110,172,0.5299332141876221
+110,243,0.47926414012908936
+110,242,0.43927574157714844
+110,123,0.4370248317718506
+111,271,0.3825233578681946
+111,253,0.3819923400878906
+111,245,0.35489600896835327
+111,315,0.3505204916000366
+113,211,0.2476775050163269
+113,284,0.23937666416168213
+113,241,0.23555946350097656
+114,179,0.24251151084899902
+114,228,0.19952285289764404
+114,202,0.198292076587677
+114,233,0.19396454095840454
+114,267,0.1843113899230957
+115,315,0.38402044773101807
+115,280,0.3655822277069092
+115,268,0.35791015625
+115,274,0.30847686529159546
+115,162,0.30200278759002686
+115,253,0.3012024760246277
+115,301,0.30101239681243896
+116,143,0.45170390605926514
+119,326,0.5068856477737427
+120,269,0.5181133151054382
+122,147,0.5749568343162537
+123,135,0.4616212844848633
+123,140,0.45282065868377686
+124,323,0.44456398487091064
+125,135,0.5413295030593872
+127,148,0.5287896990776062
+127,134,0.5085285902023315
+128,276,0.49376827478408813
+129,248,0.43626612424850464
+131,278,0.4838223457336426
+131,213,0.4832482933998108
+132,304,0.46181005239486694
+132,169,0.43860894441604614
+136,263,0.521680474281311
+136,165,0.49577754735946655
+137,172,0.4679293632507324
+137,199,0.4648488163948059
+139,247,0.5051453113555908
+140,273,0.4924865961074829
+141,309,0.4703938961029053
+141,162,0.44713181257247925
+141,178,0.4278908967971802
+141,274,0.4039841890335083
+141,253,0.40040838718414307
+142,253,0.4048103094100952
+143,224,0.4375274181365967
+143,248,0.42125940322875977
+144,176,0.5300025343894958
+144,175,0.4643594026565552
+144,166,0.3459310531616211
+145,159,0.5485456585884094
+147,275,0.48983412981033325
+147,254,0.47861701250076294
+148,261,0.46489787101745605
+148,183,0.4569733142852783
+149,192,0.5265158414840698
+149,300,0.5144801735877991
+150,301,0.5706905126571655
+155,323,0.44709300994873047
+156,259,0.3981962203979492
+156,246,0.39813756942749023
+158,182,0.45595765113830566
+158,222,0.450283408164978
+159,188,0.45554643869400024
+162,216,0.4613257646560669
+162,178,0.43130773305892944
+163,233,0.4447256326675415
+164,219,0.4431595802307129
+166,176,0.3637058734893799
+166,175,0.36088234186172485
+168,283,0.46012210845947266
+170,239,0.38576745986938477
+170,206,0.37961429357528687
+171,327,0.4605318307876587
+172,199,0.5130306482315063
+174,196,0.4665856957435608
+175,176,0.45400989055633545
+177,272,0.4394771456718445
+178,309,0.3890535831451416
+179,280,0.42250412702560425
+179,296,0.4163488745689392
+181,219,0.36220061779022217
+185,203,0.489848256111145
+186,307,0.43291711807250977
+188,199,0.48676347732543945
+188,292,0.45602238178253174
+189,268,0.4496598243713379
+189,216,0.4233663082122803
+189,214,0.3863317370414734
+189,274,0.36566078662872314
+189,280,0.3445465564727783
+190,333,0.357526957988739
+191,233,0.4537600874900818
+191,236,0.36975181102752686
+194,213,0.3778994083404541
+202,266,0.4651808738708496
+202,297,0.4411799907684326
+204,290,0.3363552689552307
+205,261,0.3784828186035156
+209,289,0.49530208110809326
+209,213,0.4907146692276001
+211,230,0.41575348377227783
+211,232,0.40931373834609985
+214,280,0.4676867723464966
+214,258,0.43147730827331543
+215,270,0.39143526554107666
+216,268,0.4717845916748047
+217,224,0.44120335578918457
+218,224,0.3506225347518921
+218,324,0.31930792331695557
+222,269,0.48943328857421875
+223,309,0.47238999605178833
+226,275,0.29364705085754395
+226,327,0.26693201065063477
+229,319,0.34096217155456543
+229,306,0.3322601914405823
+229,317,0.2562401294708252
+229,277,0.24292689561843872
+230,316,0.3588387966156006
+230,315,0.325674831867218
+231,328,0.5034037232398987
+234,251,0.39620864391326904
+235,304,0.2752126455307007
+236,272,0.39988982677459717
+240,281,0.21794962882995605
+241,293,0.20585894584655762
+241,316,0.2034989595413208
+242,243,0.4825235605239868
+245,332,0.5058653950691223
+246,275,0.49160534143447876
+253,309,0.46814537048339844
+259,277,0.5404796004295349
+260,309,0.478654146194458
+265,309,0.48589831590652466
+274,309,0.44625234603881836
+274,290,0.42190390825271606
+274,280,0.41488969326019287
+276,323,0.4206697940826416
+279,303,0.5545428395271301
+284,325,0.40888744592666626
+287,303,0.4698988199234009
+315,317,0.4240449070930481
+319,324,0.19622111320495605
+327,328,0.516725480556488
+`;
+
+      const fmtInt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
+      const fmtPct = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 0 });
+      const fmtSim = (x) => (Math.round(x * 1000) / 1000).toFixed(3);
+
+      const splitCsvLine = (line) => {
+        const out = [];
+        let cur = '';
+        let inQ = false;
+        for (let i = 0; i < line.length; i++) {
+          const c = line[i];
+          if (inQ) {
+            if (c === '"') {
+              if (line[i + 1] === '"') { cur += '"'; i++; }
+              else inQ = false;
+            } else cur += c;
+          } else {
+            if (c === '"') inQ = true;
+            else if (c === ',') { out.push(cur); cur = ''; }
+            else cur += c;
+          }
+        }
+        out.push(cur);
+        return out;
+      };
+
+      const parseCsv = (csv) => {
+        const lines = csv.trim().split(/\r?\n/);
+        if (!lines.length) return [];
+        const header = splitCsvLine(lines[0]).map((s) => s.trim());
+        const rows = [];
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line || !line.trim()) continue;
+          const cols = splitCsvLine(line);
+          const obj = {};
+          for (let j = 0; j < header.length; j++) obj[header[j]] = (cols[j] ?? '').trim();
+          rows.push(obj);
+        }
+        return rows;
+      };
+
+      const parseJsonl = (jsonl) => {
+          const lines = jsonl.trim().split(/\r?\n/).map((x) => x.trim()).filter((x) => x);
+          const out = [];
+          for (let i = 0; i < lines.length; i++) {
+            try {
+              out.push(JSON.parse(lines[i]));
+            } catch (e) {
+              console.error('Bad JSONL line', i + 1, lines[i]);
+              throw e;
+            }
+          }
+          return out;
+        };
+
+      const topicsById = new Map();
+      const keywordsById = new Map();
+      const adj = new Map();
+
+      const topicsRows = parseCsv(TOPICS_CSV);
+      for (const r of topicsRows) {
+        const id = Number(r.topic_id);
+        topicsById.set(id, {
+          topic_id: id,
+          n_publications: Number(r.n_publications || 0),
+          label: r.label || `Topic ${id}`,
+          confidence: Number(r.confidence || 0)
+        });
+      }
+
+      const kwRows = parseJsonl(KEYWORDS_JSONL);
+      for (const o of kwRows) keywordsById.set(Number(o.topic_id), o);
+
+      const simRows = parseCsv(SIMILARITY_CSV);
+      for (const r of simRows) {
+        const a = Number(r.topic_a);
+        const b = Number(r.topic_b);
+        const s = Number(r.similarity || 0);
+        if (!adj.has(a)) adj.set(a, []);
+        if (!adj.has(b)) adj.set(b, []);
+        adj.get(a).push({ id: b, sim: s });
+        adj.get(b).push({ id: a, sim: s });
+        if (!topicsById.has(a)) topicsById.set(a, { topic_id: a, n_publications: 0, label: `Topic ${a}`, confidence: 0 });
+        if (!topicsById.has(b)) topicsById.set(b, { topic_id: b, n_publications: 0, label: `Topic ${b}`, confidence: 0 });
+      }
+
+      const topicIds = Array.from(topicsById.keys()).sort((x, y) => {
+        const ax = topicsById.get(x).label.toLowerCase();
+        const ay = topicsById.get(y).label.toLowerCase();
+        return ax < ay ? -1 : ax > ay ? 1 : x - y;
+      });
+
+      const el = (id) => document.getElementById(id);
+
+      const state = {
+        selectedId: topicIds.length ? topicIds[0] : null,
+        threshold: 0.75,
+        topK: 50,
+        topicFilter: '',
+        notFilter: '',
+        notTab: 'missing',
+        connectedSort: 'sim'
+      };
+
+      const topicListEl = el('topicList');
+      const topicSearchEl = el('topicSearch');
+      const notSearchEl = el('notSearch');
+      const thrEl = el('thr');
+      const thrNumEl = el('thrNum');
+      const topKEl = el('topK');
+      const selectedH1El = el('selectedH1');
+      const selectedSublineEl = el('selectedSubline');
+      const detailMetaEl = el('detailMeta');
+      const detailBodyEl = el('detailBody');
+      const connectedMetaEl = el('connectedMeta');
+      const connectedHintEl = el('connectedHint');
+      const connectedTbodyEl = el('connectedTbody');
+      const notMetaEl = el('notMeta');
+      const notTbodyEl = el('notTbody');
+      const notCol0El = el('notCol0');
+      const statsLeftEl = el('statsLeft');
+      const statsRightEl = el('statsRight');
+      const footerNoteEl = el('footerNote');
+
+      const setSelected = (id) => {
+        state.selectedId = id;
+        renderAll();
+        topicListEl.scrollTo({ top: Math.max(0, findTopicScrollTop(id) - 80), behavior: 'smooth' });
+      };
+
+      const findTopicScrollTop = (id) => {
+        const nodes = topicListEl.querySelectorAll('.topicItem');
+        for (const n of nodes) {
+          if (Number(n.dataset.id) === id) return n.offsetTop;
+        }
+        return 0;
+      };
+
+      const buildNeighborMap = (id) => {
+        const edges = adj.get(id) || [];
+        const m = new Map();
+        for (const e of edges) m.set(e.id, e.sim);
+        return m;
+      };
+
+      const getTopic = (id) => topicsById.get(id) || { topic_id: id, n_publications: 0, label: `Topic ${id}`, confidence: 0 };
+
+      const safeDoiUrl = (doi) => {
+        if (!doi) return null;
+        const d = String(doi).trim();
+        if (!d) return null;
+        if (d.startsWith('http://') || d.startsWith('https://')) return d;
+        return `https://doi.org/${encodeURIComponent(d)}`.replace(/%2F/g, '/');
+      };
+
+      const renderTopicList = () => {
+        const q = state.topicFilter.trim().toLowerCase();
+        const frag = document.createDocumentFragment();
+        let shown = 0;
+
+        for (const id of topicIds) {
+          const t = getTopic(id);
+          if (q) {
+            const hay = `${t.topic_id} ${t.label}`.toLowerCase();
+            if (!hay.includes(q)) continue;
+          }
+          shown++;
+
+          const btn = document.createElement('button');
+          btn.className = 'topicItem' + (id === state.selectedId ? ' selected' : '');
+          btn.dataset.id = String(id);
+
+          const badge = document.createElement('div');
+          badge.className = 'topicBadge';
+          badge.textContent = String(id);
+
+          const meta = document.createElement('div');
+          meta.className = 'topicMeta';
+
+          const name = document.createElement('div');
+          name.className = 'topicName';
+          name.textContent = t.label || `Topic ${id}`;
+
+          const sub = document.createElement('div');
+          sub.className = 'topicSub';
+          const left = document.createElement('span');
+          left.textContent = `${fmtInt.format(t.n_publications || 0)} pubs`;
+          const right = document.createElement('span');
+          right.textContent = (t.confidence ? fmtPct.format(t.confidence) : '—');
+          sub.append(left, right);
+
+          meta.append(name, sub);
+          btn.append(badge, meta);
+
+          btn.addEventListener('click', () => setSelected(id));
+          frag.appendChild(btn);
+        }
+
+        topicListEl.innerHTML = '';
+        topicListEl.appendChild(frag);
+
+        statsLeftEl.textContent = `${fmtInt.format(topicIds.length)} topics`;
+        statsRightEl.textContent = q ? `${fmtInt.format(shown)} shown` : '—';
+      };
+
+      const renderSelectedHeader = () => {
+        const id = state.selectedId;
+        if (id == null) {
+          selectedH1El.innerHTML = '<span>Select a topic</span>';
+          selectedSublineEl.textContent = '';
+          return;
+        }
+        const t = getTopic(id);
+        const kw = keywordsById.get(id);
+        const edgeCount = (adj.get(id) || []).length;
+
+        selectedH1El.innerHTML = `
+          <span>${escapeHtml(t.label || `Topic ${id}`)}</span>
+          <span class='kicker'>topic_id: ${id}</span>
+        `;
+
+        const pubs = fmtInt.format(t.n_publications || 0);
+        const conf = t.confidence ? fmtPct.format(t.confidence) : '—';
+        const kwCount = kw && Array.isArray(kw.keywords) ? kw.keywords.length : 0;
+
+        selectedSublineEl.innerHTML = `
+          <span class='chip'>${pubs} publications</span>
+          <span class='chip'>confidence ${conf}</span>
+          <span class='chip'>edges in file ${fmtInt.format(edgeCount)}</span>
+          <span class='chip'>keywords ${fmtInt.format(kwCount)}</span>
+        `;
+      };
+
+      const renderDetails = () => {
+        const id = state.selectedId;
+        if (id == null) {
+          detailMetaEl.textContent = '—';
+          detailBodyEl.textContent = '';
+          return;
+        }
+
+        const t = getTopic(id);
+        const kw = keywordsById.get(id);
+
+        const pubs = fmtInt.format(t.n_publications || 0);
+        const conf = t.confidence ? fmtPct.format(t.confidence) : '—';
+        const size = kw && typeof kw.size === 'number' ? fmtInt.format(kw.size) : '—';
+
+        detailMetaEl.innerHTML = `
+          <span>Publications: <span style='font-family:var(--mono); color:rgba(255,255,255,.85)'>${pubs}</span></span>
+          <span>Confidence: <span style='font-family:var(--mono); color:rgba(255,255,255,.85)'>${conf}</span></span>
+          <span>Keyword size: <span style='font-family:var(--mono); color:rgba(255,255,255,.85)'>${size}</span></span>
+        `;
+
+        const kws = kw && Array.isArray(kw.keywords) ? kw.keywords : [];
+        const reps = kw && Array.isArray(kw.representatives) ? kw.representatives : [];
+
+        const kwHtml = kws.slice(0, 32).map((k) => `<span class='kw'>${escapeHtml(String(k))}</span>`).join('');
+        const repsHtml = reps.slice(0, 8).map((r) => {
+          const title = r && r.title ? String(r.title) : 'Untitled';
+          const year = r && r.year ? String(r.year) : '—';
+          const doi = r && r.doi ? String(r.doi) : '';
+          const url = safeDoiUrl(doi);
+          const idTxt = (r && (r.id != null)) ? String(r.id) : '';
+          const linkOpen = url ? `<a href='${escapeAttr(url)}' target='_blank' rel='noopener noreferrer'>${escapeHtml(title)}</a>` : `<span>${escapeHtml(title)}</span>`;
+          const doiTxt = doi ? `doi:${doi}` : '';
+          const idPart = idTxt ? `id:${idTxt}` : '';
+          const meta = [year, doiTxt, idPart].filter(Boolean).join(' · ');
+          return `
+            <div class='rep'>
+              <div class='left'>
+                <div class='t'>${linkOpen}</div>
+                <div class='m'>${escapeHtml(meta || '—')}</div>
+              </div>
+              <div class='right'>${escapeHtml(year)}</div>
+            </div>
+          `;
+        }).join('');
+
+        detailBodyEl.innerHTML = `
+          <div class='detailGrid'>
+            <div>
+              <div class='kv'>
+                <span class='k'>topic_id</span><span class='v'>${escapeHtml(String(t.topic_id))}</span>
+                <span class='k'>label</span><span class='v' style='font-family:var(--sans);'>${escapeHtml(t.label || `Topic ${id}`)}</span>
+              </div>
+              <div class='keywords'>${kwHtml || `<span class='small'>No keywords for this topic_id in the JSONL.</span>`}</div>
+            </div>
+
+            <div>
+              <div class='kv'><span class='k'>Representatives</span><span class='v'>${escapeHtml(String(reps.length))}</span></div>
+              <div class='repList'>${repsHtml || `<span class='small'>No representative papers for this topic_id in the JSONL.</span>`}</div>
+            </div>
+          </div>
+        `;
+      };
+
+      const renderConnected = () => {
+        const id = state.selectedId;
+        if (id == null) {
+          connectedMetaEl.textContent = '—';
+          connectedTbodyEl.innerHTML = '';
+          return;
+        }
+
+        const edges = (adj.get(id) || []).slice();
+        const thr = state.threshold;
+        const topK = state.topK;
+
+        let connected = edges.filter((e) => e.sim >= thr).map((e) => {
+          const t = getTopic(e.id);
+          return { id: e.id, sim: e.sim, label: t.label, pubs: t.n_publications || 0, conf: t.confidence || 0 };
+        });
+
+        if (state.connectedSort === 'pubs') connected.sort((a, b) => (b.pubs - a.pubs) || (b.sim - a.sim) || a.label.localeCompare(b.label));
+        else if (state.connectedSort === 'az') connected.sort((a, b) => a.label.localeCompare(b.label) || (b.sim - a.sim));
+        else connected.sort((a, b) => (b.sim - a.sim) || (b.pubs - a.pubs) || a.label.localeCompare(b.label));
+
+        const total = connected.length;
+        const sliced = connected.slice(0, topK);
+
+        connectedMetaEl.innerHTML = `
+          <span>threshold <span style='font-family:var(--mono); color:rgba(255,255,255,.85)'>${fmtSim(thr)}</span></span>
+          <span>connected <span style='font-family:var(--mono); color:rgba(255,255,255,.85)'>${fmtInt.format(total)}</span></span>
+          <span>showing <span style='font-family:var(--mono); color:rgba(255,255,255,.85)'>${fmtInt.format(sliced.length)}</span></span>
+        `;
+
+        connectedHintEl.textContent = total ? 'click a topic to jump' : 'no edges above threshold in the similarity file';
+
+        const frag = document.createDocumentFragment();
+        for (const row of sliced) {
+          const tr = document.createElement('tr');
+
+          const tdSim = document.createElement('td');
+          tdSim.className = 'simCell';
+          tdSim.innerHTML = `
+            <div class='simRow'>
+              <div class='simNum'>${fmtSim(row.sim)}</div>
+              <div class='simBar'><div style='width:${Math.max(0, Math.min(100, row.sim * 100)).toFixed(1)}%'></div></div>
+            </div>
+          `;
+
+          const tdName = document.createElement('td');
+          const a = document.createElement('a');
+          a.className = 'tnameBtn';
+          a.textContent = row.label || `Topic ${row.id}`;
+          a.href = 'javascript:void(0)';
+          a.addEventListener('click', () => setSelected(row.id));
+          const sub = document.createElement('div');
+          sub.className = 'small';
+          const hasKw = keywordsById.has(row.id);
+          sub.textContent = `topic_id ${row.id}${hasKw ? ' · keywords ✓' : ''}`;
+          tdName.appendChild(a);
+          tdName.appendChild(sub);
+
+          const tdPubs = document.createElement('td');
+          tdPubs.className = 'rightAlign';
+          tdPubs.textContent = fmtInt.format(row.pubs || 0);
+
+          const tdConf = document.createElement('td');
+          tdConf.className = 'rightAlign';
+          tdConf.textContent = row.conf ? fmtPct.format(row.conf) : '—';
+
+          tr.append(tdSim, tdName, tdPubs, tdConf);
+          frag.appendChild(tr);
+        }
+
+        connectedTbodyEl.innerHTML = '';
+        connectedTbodyEl.appendChild(frag);
+      };
+
+      const renderNotConnected = () => {
+        const id = state.selectedId;
+        if (id == null) {
+          notMetaEl.textContent = '—';
+          notTbodyEl.innerHTML = '';
+          return;
+        }
+
+        const thr = state.threshold;
+        const topK = state.topK;
+        const edges = adj.get(id) || [];
+        const neighbor = buildNeighborMap(id);
+
+        const below = edges
+          .filter((e) => e.sim < thr)
+          .map((e) => {
+            const t = getTopic(e.id);
+            return { reason: fmtSim(e.sim), id: e.id, label: t.label, pubs: t.n_publications || 0, conf: t.confidence || 0, sim: e.sim };
+          })
+          .sort((a, b) => (b.sim - a.sim) || (b.pubs - a.pubs) || a.label.localeCompare(b.label));
+
+        const missing = [];
+        for (const tid of topicIds) {
+          if (tid === id) continue;
+          if (!neighbor.has(tid)) {
+            const t = getTopic(tid);
+            missing.push({ reason: 'missing', id: tid, label: t.label, pubs: t.n_publications || 0, conf: t.confidence || 0 });
+          }
+        }
+        missing.sort((a, b) => (b.pubs - a.pubs) || a.label.localeCompare(b.label));
+
+        const filterQ = state.notFilter.trim().toLowerCase();
+        const applyFilter = (arr) => {
+          if (!filterQ) return arr;
+          return arr.filter((r) => (`${r.id} ${r.label}`.toLowerCase().includes(filterQ)));
+        };
+
+        const active = state.notTab === 'below' ? applyFilter(below) : applyFilter(missing);
+        const total = active.length;
+        const sliced = active.slice(0, topK);
+
+        notMetaEl.innerHTML = `
+          <span>missing edges <span style='font-family:var(--mono); color:rgba(255,255,255,.85)'>${fmtInt.format(missing.length)}</span></span>
+          <span>below threshold <span style='font-family:var(--mono); color:rgba(255,255,255,.85)'>${fmtInt.format(below.length)}</span></span>
+          <span>showing <span style='font-family:var(--mono); color:rgba(255,255,255,.85)'>${fmtInt.format(sliced.length)}</span></span>
+        `;
+
+        notCol0El.textContent = state.notTab === 'below' ? 'Similarity' : 'Reason';
+
+        const frag = document.createDocumentFragment();
+        for (const row of sliced) {
+          const tr = document.createElement('tr');
+
+          const tdR = document.createElement('td');
+          tdR.style.fontFamily = 'var(--mono)';
+          tdR.style.color = 'rgba(255,255,255,.80)';
+          tdR.textContent = row.reason;
+
+          const tdName = document.createElement('td');
+          const a = document.createElement('a');
+          a.className = 'tnameBtn';
+          a.textContent = row.label || `Topic ${row.id}`;
+          a.href = 'javascript:void(0)';
+          a.addEventListener('click', () => setSelected(row.id));
+          const sub = document.createElement('div');
+          sub.className = 'small';
+          const hasKw = keywordsById.has(row.id);
+          sub.textContent = `topic_id ${row.id}${hasKw ? ' · keywords ✓' : ''}`;
+          tdName.appendChild(a);
+          tdName.appendChild(sub);
+
+          const tdPubs = document.createElement('td');
+          tdPubs.className = 'rightAlign';
+          tdPubs.textContent = fmtInt.format(row.pubs || 0);
+
+          const tdConf = document.createElement('td');
+          tdConf.className = 'rightAlign';
+          tdConf.textContent = row.conf ? fmtPct.format(row.conf) : '—';
+
+          tr.append(tdR, tdName, tdPubs, tdConf);
+          frag.appendChild(tr);
+        }
+
+        notTbodyEl.innerHTML = '';
+        notTbodyEl.appendChild(frag);
+
+        footerNoteEl.textContent =
+          state.notTab === 'missing'
+            ? '“Missing edge” means there is no (topic_id → topic_id) row for this pair in your similarity file (it might be truly absent, or just not included).'
+            : '“Below threshold” are topics that appear in the similarity file for the selected topic, but with similarity < min similarity.';
+      };
+
+      const escapeHtml = (s) =>
+        String(s)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;');
+
+      const escapeAttr = (s) => escapeHtml(s).replaceAll('`', '&#96;');
+
+      const renderAll = () => {
+        renderTopicList();
+        renderSelectedHeader();
+        renderDetails();
+        renderConnected();
+        renderNotConnected();
+      };
+
+      let topicSearchRaf = 0;
+      topicSearchEl.addEventListener('input', () => {
+        state.topicFilter = topicSearchEl.value || '';
+        cancelAnimationFrame(topicSearchRaf);
+        topicSearchRaf = requestAnimationFrame(renderTopicList);
+      });
+
+      let notSearchRaf = 0;
+      notSearchEl.addEventListener('input', () => {
+        state.notFilter = notSearchEl.value || '';
+        cancelAnimationFrame(notSearchRaf);
+        notSearchRaf = requestAnimationFrame(renderNotConnected);
+      });
+
+      const syncThreshold = (v) => {
+        const x = Math.max(0, Math.min(1, Number(v)));
+        state.threshold = x;
+        thrEl.value = String(x);
+        thrNumEl.value = String(Math.round(x * 100) / 100);
+        renderConnected();
+        renderNotConnected();
+      };
+
+      thrEl.addEventListener('input', () => syncThreshold(thrEl.value));
+      thrNumEl.addEventListener('input', () => syncThreshold(thrNumEl.value));
+
+      topKEl.addEventListener('input', () => {
+        const v = Math.max(1, Number(topKEl.value || 1));
+        state.topK = v;
+        renderConnected();
+        renderNotConnected();
+      });
+
+      document.querySelectorAll('[data-sort]').forEach((b) => {
+        b.addEventListener('click', () => {
+          const v = b.dataset.sort;
+          state.connectedSort = v;
+          document.querySelectorAll('[data-sort]').forEach((x) => x.classList.toggle('active', x.dataset.sort === v));
+          renderConnected();
+        });
+      });
+
+      document.querySelectorAll('[data-tab]').forEach((b) => {
+        b.addEventListener('click', () => {
+          const v = b.dataset.tab;
+          state.notTab = v;
+          document.querySelectorAll('[data-tab]').forEach((x) => x.classList.toggle('active', x.dataset.tab === v));
+          renderNotConnected();
+        });
+      });
+
+      el('randomBtn').addEventListener('click', () => {
+        if (!topicIds.length) return;
+        const id = topicIds[Math.floor(Math.random() * topicIds.length)];
+        setSelected(id);
+      });
+
+      const renderSelectedSubline = () => {};
+      const renderTopicPanel = () => {};
+      const renderAllPanels = () => {};
+
+      const renderTopicListOnly = () => renderTopicList();
+      const renderAllOnly = () => renderAll();
+
+      const renderSelected = () => {
+        renderSelectedHeader();
+        renderDetails();
+        renderConnected();
+        renderNotConnected();
+      };
+
+      const renderMain = () => renderSelected();
+
+      const renderPage = () => renderAll();
+
+      const renderApp = () => renderPage();
+
+      const renderStartup = () => {
+        const thr0 = Number(thrEl.value);
+        state.threshold = isFinite(thr0) ? thr0 : 0.75;
+        state.topK = Math.max(1, Number(topKEl.value || 50));
+        renderAll();
+      };
+
+      renderStartup();
+    </script>
+  </body>
+</html>
