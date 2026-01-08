@@ -6,45 +6,51 @@
     <title>Topic Connectivity Explorer</title>
     <style>
       :root{
-        --bg0:#070A12;
-        --bg1:#0B1220;
-        --card:rgba(255,255,255,.06);
-        --card2:rgba(255,255,255,.08);
+        color-scheme: dark;
+
+        --bg0:#0b0f17;
+        --bg1:#070a10;
+
+        --card:rgba(255,255,255,.04);
+        --card2:rgba(255,255,255,.06);
+
         --stroke:rgba(255,255,255,.10);
-        --stroke2:rgba(255,255,255,.14);
+        --stroke2:rgba(255,255,255,.16);
+
         --text:rgba(255,255,255,.92);
         --muted:rgba(255,255,255,.66);
         --muted2:rgba(255,255,255,.50);
-        --accent:#8B5CF6;
-        --accent2:#22D3EE;
-        --good:#34D399;
-        --warn:#FBBF24;
-        --bad:#FB7185;
-        --shadow: 0 18px 60px rgba(0,0,0,.45);
-        --radius:16px;
+
+        --accent:#3B82F6;   /* blue */
+        --accent2:#06B6D4;  /* cyan */
+        --good:#22C55E;     /* green */
+        --warn:#F59E0B;     /* amber */
+        --bad:#EF4444;      /* red */
+
+        --shadow: 0 14px 40px rgba(0,0,0,.55);
+        --inner: 0 1px 0 rgba(255,255,255,.05) inset;
+        --ring: 0 0 0 3px rgba(59,130,246,.22);
+
+        --radius:14px;
         --radius2:12px;
+
         --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
         --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji','Segoe UI Emoji';
       }
 
       *{box-sizing:border-box}
       html,body{height:100%}
+
       body{
         margin:0;
         font-family:var(--sans);
         color:var(--text);
-        background:
-          radial-gradient(1200px 800px at 15% 10%, rgba(139,92,246,.25), transparent 55%),
-          radial-gradient(1200px 800px at 85% 15%, rgba(34,211,238,.20), transparent 55%),
-          radial-gradient(1200px 900px at 45% 110%, rgba(52,211,153,.12), transparent 55%),
-          linear-gradient(180deg, var(--bg0), var(--bg1));
         overflow:visible;
       }
 
-
       .app{
         height:auto;
-        min-height: 100vh;
+        min-height:100vh;
         display:grid;
         grid-template-columns: 360px 1fr;
         gap:16px;
@@ -55,9 +61,9 @@
         min-height:0;
         border:1px solid var(--stroke);
         border-radius: var(--radius);
-        background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04));
-        box-shadow: var(--shadow);
-        backdrop-filter: blur(10px);
+        background: rgba(255,255,255,.03);
+        box-shadow: var(--shadow), var(--inner);
+        backdrop-filter: blur(12px) saturate(130%);
         overflow:visible;
       }
 
@@ -69,7 +75,7 @@
       .brand{
         padding:14px 14px 10px 14px;
         border-bottom:1px solid var(--stroke);
-        background: linear-gradient(180deg, rgba(255,255,255,.07), transparent);
+        background: rgba(255,255,255,.02);
       }
 
       .brandTop{
@@ -88,8 +94,8 @@
 
       .dot{
         width:12px;height:12px;border-radius:999px;
-        background: conic-gradient(from 180deg, var(--accent), var(--accent2), var(--good), var(--accent));
-        box-shadow: 0 0 0 6px rgba(139,92,246,.10), 0 0 40px rgba(139,92,246,.18);
+        background: var(--accent);
+        box-shadow: 0 0 0 5px rgba(59,130,246,.10);
         flex:0 0 auto;
       }
 
@@ -119,7 +125,7 @@
         font-size:12px;
         border-radius:999px;
         border:1px solid var(--stroke);
-        background: rgba(255,255,255,.05);
+        background: var(--card);
         color:var(--text);
         cursor:pointer;
         transition: transform .12s ease, background .12s ease, border-color .12s ease;
@@ -128,8 +134,14 @@
 
       .pill:hover{
         transform: translateY(-1px);
-        background: rgba(255,255,255,.08);
+        background: var(--card2);
         border-color: var(--stroke2);
+      }
+
+      .pill:focus-visible{
+        outline:none;
+        box-shadow: var(--ring);
+        border-color: rgba(59,130,246,.55);
       }
 
       .pillRow{
@@ -152,14 +164,16 @@
         padding:10px 12px;
         border-radius: 12px;
         border:1px solid var(--stroke);
-        background: rgba(0,0,0,.22);
+        background: rgba(0,0,0,.26);
         color:var(--text);
         outline:none;
-        transition:border-color .12s ease, background .12s ease;
+        transition:border-color .12s ease, background .12s ease, box-shadow .12s ease;
       }
+
       .search:focus{
-        border-color: rgba(139,92,246,.55);
-        background: rgba(0,0,0,.28);
+        border-color: rgba(59,130,246,.60);
+        background: rgba(0,0,0,.30);
+        box-shadow: var(--ring);
       }
 
       .topicList{
@@ -171,12 +185,12 @@
         width:100%;
         text-align:left;
         border:1px solid var(--stroke);
-        background: rgba(255,255,255,.04);
+        background: rgba(255,255,255,.03);
         color:var(--text);
         border-radius: 14px;
         padding:10px 10px;
         cursor:pointer;
-        transition: transform .12s ease, background .12s ease, border-color .12s ease;
+        transition: transform .12s ease, background .12s ease, border-color .12s ease, box-shadow .12s ease;
         display:flex;
         gap:10px;
         align-items:flex-start;
@@ -185,13 +199,19 @@
 
       .topicItem:hover{
         transform: translateY(-1px);
-        background: rgba(255,255,255,.06);
+        background: rgba(255,255,255,.05);
         border-color: var(--stroke2);
       }
 
+      .topicItem:focus-visible{
+        outline:none;
+        box-shadow: var(--ring);
+        border-color: rgba(59,130,246,.55);
+      }
+
       .topicItem.selected{
-        border-color: rgba(139,92,246,.65);
-        background: linear-gradient(180deg, rgba(139,92,246,.12), rgba(255,255,255,.04));
+        border-color: rgba(59,130,246,.60);
+        background: rgba(59,130,246,.10);
       }
 
       .topicBadge{
@@ -200,13 +220,13 @@
         height:34px;
         border-radius: 12px;
         border:1px solid var(--stroke);
-        background: radial-gradient(16px 16px at 30% 30%, rgba(34,211,238,.28), rgba(139,92,246,.22));
+        background: rgba(255,255,255,.05);
         display:flex;
         align-items:center;
         justify-content:center;
         font-family:var(--mono);
         font-size:12px;
-        color:rgba(255,255,255,.85);
+        color:rgba(255,255,255,.86);
       }
 
       .topicMeta{
@@ -240,7 +260,7 @@
         padding:6px 10px;
         border-radius:999px;
         border:1px solid var(--stroke);
-        background: rgba(255,255,255,.05);
+        background: var(--card);
         color:var(--muted);
         font-size:12px;
         user-select:none;
@@ -255,7 +275,7 @@
       .topbar{
         padding:14px 16px;
         border-bottom:1px solid var(--stroke);
-        background: linear-gradient(180deg, rgba(255,255,255,.07), transparent);
+        background: rgba(255,255,255,.02);
         display:flex;
         flex-wrap:wrap;
         gap:12px;
@@ -287,7 +307,7 @@
         padding:4px 8px;
         border-radius:999px;
         border:1px solid var(--stroke);
-        background: rgba(0,0,0,.22);
+        background: rgba(0,0,0,.26);
       }
 
       .selectedTitle .subline{
@@ -315,7 +335,7 @@
         padding:8px 10px;
         border-radius:14px;
         border:1px solid var(--stroke);
-        background: rgba(0,0,0,.18);
+        background: rgba(0,0,0,.20);
       }
 
       .controlGroup label{
@@ -326,16 +346,22 @@
       }
 
       input[type='range']{ accent-color: var(--accent); }
+
       .num{
         width:76px;
         padding:8px 8px;
         border-radius: 12px;
         border:1px solid var(--stroke);
-        background: rgba(0,0,0,.22);
+        background: rgba(0,0,0,.26);
         color:var(--text);
         outline:none;
+        transition:border-color .12s ease, box-shadow .12s ease;
       }
-      .num:focus{ border-color: rgba(139,92,246,.55); }
+
+      .num:focus{
+        border-color: rgba(59,130,246,.60);
+        box-shadow: var(--ring);
+      }
 
       .content{
         padding:16px;
@@ -349,7 +375,7 @@
       .panel{
         border:1px solid var(--stroke);
         border-radius: var(--radius);
-        background: rgba(255,255,255,.04);
+        background: rgba(255,255,255,.03);
         overflow:auto;
       }
 
@@ -360,7 +386,7 @@
         align-items:center;
         justify-content:space-between;
         gap:12px;
-        background: linear-gradient(180deg, rgba(255,255,255,.06), transparent);
+        background: rgba(255,255,255,.02);
       }
 
       .panelHeader h2{
@@ -369,7 +395,7 @@
         font-weight:750;
         letter-spacing:.25px;
         text-transform:uppercase;
-        color: rgba(255,255,255,.80);
+        color: rgba(255,255,255,.78);
       }
 
       .panelHeader .meta{
@@ -402,6 +428,7 @@
         font-size:12px;
         color:var(--muted2);
       }
+
       .kv .v{
         font-size:12px;
         color:var(--text);
@@ -419,7 +446,7 @@
         padding:7px 10px;
         border-radius:999px;
         border:1px solid var(--stroke);
-        background: rgba(255,255,255,.05);
+        background: var(--card);
         font-size:12px;
         color:rgba(255,255,255,.86);
         user-select:none;
@@ -434,7 +461,7 @@
 
       .rep{
         border:1px solid var(--stroke);
-        background: rgba(0,0,0,.18);
+        background: rgba(0,0,0,.20);
         border-radius: 14px;
         padding:10px 10px;
         display:flex;
@@ -444,20 +471,21 @@
       }
 
       .rep a{
-        color:rgba(255,255,255,.88);
+        color:rgba(255,255,255,.90);
         text-decoration:none;
       }
+
       .rep a:hover{ text-decoration:underline; }
 
-      .rep .left{
-        min-width:0;
-      }
+      .rep .left{ min-width:0; }
+
       .rep .t{
         font-size:13px;
         font-weight:650;
         line-height:1.25;
         margin:0 0 6px 0;
       }
+
       .rep .m{
         font-size:12px;
         color:var(--muted);
@@ -475,12 +503,10 @@
         padding:6px 8px;
         border-radius: 999px;
         border:1px solid var(--stroke);
-        background: rgba(255,255,255,.04);
+        background: rgba(255,255,255,.03);
       }
 
-      .tableWrap{
-        overflow:auto;
-      }
+      .tableWrap{ overflow:auto; }
 
       table{
         width:100%;
@@ -493,10 +519,10 @@
         position:sticky;
         top:0;
         z-index:2;
-        background: rgba(10,14,26,.92);
+        background: rgba(10,14,22,.92);
         backdrop-filter: blur(10px);
         border-bottom:1px solid var(--stroke);
-        color:rgba(255,255,255,.80);
+        color:rgba(255,255,255,.78);
         font-size:12px;
         letter-spacing:.2px;
         text-transform:uppercase;
@@ -512,7 +538,7 @@
       }
 
       tbody tr:hover td{
-        background: rgba(255,255,255,.03);
+        background: rgba(255,255,255,.02);
       }
 
       .tnameBtn{
@@ -524,6 +550,7 @@
         text-decoration:none;
         font-weight:650;
       }
+
       .tnameBtn:hover{ text-decoration:underline; }
 
       .small{
@@ -531,34 +558,35 @@
         color:var(--muted);
       }
 
-      .simCell{
-        min-width:160px;
-      }
+      .simCell{ min-width:160px; }
+
       .simRow{
         display:flex;
         align-items:center;
         gap:10px;
       }
+
       .simNum{
         font-family:var(--mono);
         font-size:12px;
         color:rgba(255,255,255,.82);
         width:60px;
       }
+
       .simBar{
         flex:1;
         height:8px;
         border-radius:999px;
         border:1px solid var(--stroke);
-        background: rgba(0,0,0,.22);
+        background: rgba(0,0,0,.26);
         overflow:hidden;
       }
+
       .simBar > div{
         height:100%;
         width:0%;
         border-radius:999px;
-        background: linear-gradient(90deg, rgba(34,211,238,.75), rgba(139,92,246,.75));
-        box-shadow: 0 0 30px rgba(139,92,246,.22);
+        background: linear-gradient(90deg, rgba(59,130,246,.85), rgba(6,182,212,.85));
       }
 
       .rightAlign{
@@ -589,22 +617,30 @@
         padding:8px 10px;
         border-radius:999px;
         border:1px solid var(--stroke);
-        background: rgba(0,0,0,.18);
+        background: rgba(0,0,0,.20);
         color:var(--muted);
         cursor:pointer;
         font-size:12px;
-        transition: background .12s ease, border-color .12s ease, transform .12s ease, color .12s ease;
+        transition: background .12s ease, border-color .12s ease, transform .12s ease, color .12s ease, box-shadow .12s ease;
         user-select:none;
       }
+
       .segBtn:hover{
         transform: translateY(-1px);
         border-color: var(--stroke2);
-        background: rgba(255,255,255,.06);
+        background: rgba(255,255,255,.04);
       }
+
+      .segBtn:focus-visible{
+        outline:none;
+        box-shadow: var(--ring);
+        border-color: rgba(59,130,246,.55);
+      }
+
       .segBtn.active{
-        color:rgba(255,255,255,.90);
-        border-color: rgba(139,92,246,.55);
-        background: rgba(139,92,246,.12);
+        color:rgba(255,255,255,.92);
+        border-color: rgba(59,130,246,.55);
+        background: rgba(59,130,246,.12);
       }
 
       .footerNote{
@@ -612,7 +648,7 @@
         font-size:12px;
         color:var(--muted2);
         border-top:1px solid rgba(255,255,255,.06);
-        background: rgba(0,0,0,.12);
+        background: rgba(0,0,0,.14);
       }
 
       @media (max-width: 980px){
@@ -793,775 +829,530 @@
 46,66,Exoplanet Atmosphere Characterization,0.95
 47,63,Ozone Monitoring in Russia,0.95
 48,43,Errors and Retractions in Scientific Publications,0.85
-49,34,Erythropoiesis-Stimulating Agents Detection,0.95
-50,2,Aerosol Trends and Population Dynamics,0.85
-51,1,Efficient Change Detection Models,0.90
-52,1,Semi-Supervised Cloud Removal Techniques,0.85
-53,1,Affective Computing in AI Networks,0.85
-54,1,Graph Convolutional Networks for NLP,0.85
-55,1,Point Cloud Segmentation for Rough Roads,0.85
-56,1,Ceiling-View Visual Odometry,0.85
-57,1,Monocular 3D Object Detection,0.95
-58,1,Cross-View Image Geo-Localization,0.85
-59,1,Deep Learning for Mesh Processing,0.95
-60,1,AI Applications in Climate Analysis,0.85
-61,1,Cloud Detection in Remote Sensing,0.95
-62,1,Adaptive Object Detection in Image Processing,0.85
-63,1,Fuzzy Risk Assessment in Wildlife Conservation,0.85
-64,1,Deep Learning for Satellite Imagery,0.85
-65,1,Hyperspectral Image Classification,0.85
-66,1,Drone Tracking and Security,0.85
-67,1,Urban Design and Environmental Metrics,0.85
-68,1,Impact of Climate on Ecosystem Productivity,0.85
-69,1,Wearable Antenna Technology,0.95
-70,1,Compact 3D Data Structures,0.85
-71,1,Efficient SLAM Techniques,0.85
-72,1,Urban Heat Management and Green Infrastructure,0.85
-73,1,Deep Learning for Image Change Detection,0.85
-74,1,Advertisement Image Classification,0.95
-75,1,Learning-Based Approaches in Graph Coloring,0.85
-76,1,Bird Detection in Aerial Videos,0.85
-77,1,Wearable Technology for Health Monitoring,0.85
-78,1,Vehicle Detection in Satellite Imagery,0.85
-79,1,Water Quality Monitoring in Aquaculture,0.85
-80,1,Soil Moisture Remote Sensing,0.85
-81,1,Microstrip Reflectarray Antenna Design,0.95
-82,1,Enhanced Location Accuracy Services,0.85
-83,1,Soil Loss Assessment in Drylands,0.85
-84,1,Remote Sensing of Thermal Variations,0.95
-85,1,Landslide Susceptibility and Soil Moisture Dynamics,0.95
-86,1,Cyclist Safety in Urban Environments,0.85
-87,1,Air Pollution in Urban Clusters,0.95
-88,1,Satellite Remote Sensing for Vegetation Productivity,0.90
-89,1,Microstrip Antennas for Wireless Communication,0.95
-90,1,Hyperspectral Image Processing,0.95
-91,1,Hyperspectral Imaging for Landmine Detection,0.95
-92,1,Camera and LIDAR Fusion Techniques,0.85
-93,1,De-speckling Methods in SAR Imagery,0.95
-94,1,Satellite Monitoring of Climate Extremes,0.95
-95,1,Trapezoidal Antenna Design and Measurement,0.90
-96,1,Quantization Noise Reduction in Frequency Synthesizers,0.95
-97,1,Open Source Image Analysis in Plant Research,0.85
-98,1,Land Cover Classification Techniques,0.85
-99,1,Reference Generation in ADCs,0.95
-100,1,Ultra High Field MRI Technology,0.95
-101,1,Hyperspectral Analysis in Agriculture,0.95
-102,1,Free-Space Optical Communication,0.85
-103,1,Low-Power Biomedical Signal Processing,0.95
-104,1,Noise Reduction in MEMS Sensors,0.85
-105,1,Ultrawideband Antenna Design,0.95
-106,1,Dust Storm Dynamics and Analysis,0.85
-107,1,Precipitation Patterns and Environmental Impact,0.85
-108,1,Erosion Dynamics in Bedrock Rivers,0.85
-109,1,Impedance Matching in Antenna Systems,0.85
-110,1,Dual-Band Signal Processing in Navigation,0.95
-111,1,Post-Disaster Communication Strategies,0.85
-112,1,Evaluation of Rainfall Estimation Techniques,0.85
-113,1,Roman Road Networks and Settlements,0.85
-114,1,Conscientious Objection and Refugee Status,0.85
-115,1,Strategic Urban Development in Networked Cities,0.85
-116,1,Multispectral Imaging in Medical Diagnosis,0.85
-117,1,Underwater Methane Monitoring Technologies,0.85
-118,1,Synthetic Data Generation for Remote Sensing,0.95
-119,1,Soil Erosion and Land Management,0.85
-120,1,Forest Measurement Techniques,0.85
-122,1,Satellite SAR Imagery Analysis,0.85
-123,1,SAR Anti-Jamming Techniques,0.85
-124,1,3D Model Registration and Coregistration,0.95
-125,1,Compensation Techniques in Ground Penetrating Radar,0.85
-126,1,Antarctic Soil Nematode Dynamics,0.95
-127,1,Segmentation Techniques for SAR Images,0.85
-128,1,Synthetic Data Balancing in SAR Recognition,0.85
-129,1,Hurricane Damage Modeling in Construction,0.95
-130,1,Neural Network Applications in Agriculture,0.95
-131,1,Satellite Geolocation Techniques,0.90
-132,1,Evolutionary Strategies in Hyperspectral Imaging,0.95
-133,1,Ship Detection in Polarimetric SAR Images,0.95
-134,1,SAR Tomography Techniques,0.95
-135,1,Airborne Synthetic Aperture Radar Processing,0.85
-136,1,Multispectral Imaging Systems,0.85
-137,1,Wearable Antennas for Satellite Communications,0.95
-138,1,Isosurface Rendering in Volume Data,0.90
-139,1,UAV Applications in Agriculture,0.85
-140,1,SAR Jamming Techniques,0.90
-141,1,Water Quality Assessment and Management,0.85
-142,1,Wind Comfort and Environmental Impact,0.85
-143,1,Electromagnetic Radiation Effects,0.85
-144,1,Geiparvarin Analogues in Cancer Research,0.85
-145,1,Millimeter-Wave Antenna Systems,0.85
-146,1,Aerosol Impact on Glaciers,0.85
-147,1,Automatic Ship Detection Systems,0.95
-148,1,Wake Detection in Polarimetric SAR Images,0.95
-149,1,Pixel-Based Classification in Remote Sensing,0.85
-150,1,Airborne Lidar for Tree Detection,0.85
-151,1,Space-Based Imaging Technologies,0.90
-152,1,Atmospheric Phenomena and Dust Events,0.85
-153,1,Cloud Systems and Precipitation Analysis,0.85
-154,1,Phase Estimation Techniques,0.85
-155,1,Evolutionary Measures in Image Processing,0.85
-156,1,Formal Verification in Aviation Protocols,0.85
-157,1,High-Precision Analog-to-Digital Converters,0.95
-158,1,Intelligent Vehicle Locomotion Patterns,0.95
-159,1,Cup Microstrip Antennas Optimization,0.95
-160,1,Optical Touch Keyboard Technologies,0.85
-161,1,SAR Trajectory Estimation Techniques,0.85
-162,1,Water Quality and Pollution Treatment,0.85
-163,1,Satellite Dispenser Design and Integration,0.85
-164,1,Coastal Dune Dynamics,0.95
-165,1,Low-Power Image Fusion Technologies,0.95
-166,1,Plant Defense Mechanisms and Proteins,0.95
-167,1,Urban Environment Characterization,0.95
-168,1,Satellite Remote Sensing Instruments,0.85
-169,1,Spectral Analysis in Remote Sensing,0.85
-170,1,Fault-Tolerant Neural Networks,0.95
-171,1,Satellite Remote Sensing of Water Quality,0.95
-172,1,Low-Cost Antenna Designs for Satellite Communications,0.95
-173,1,Optimizing Sensor Models with Genetic Algorithms,0.85
-174,1,Ultrasound Phased Array for Hyperthermia,0.95
-175,1,Natural Herbicides and Phytotoxicity,0.95
-176,1,Total Synthesis in Drug Discovery,0.85
-177,1,Satellite Communication Interference Management,0.85
-178,1,Groundwater Resource Management,0.85
-179,1,Wetland Management and Conservation,0.85
-180,1,Orbital Parameters in SAR Interferometry,0.85
-181,1,Soil Reinforcement Techniques,0.85
-182,1,Mobile Robot Localization and Navigation,0.85
-183,1,Wavelet Analysis in Radar Signal Processing,0.85
-184,1,Illumination Invariant Spectral Unmixing,0.90
-185,1,Methane Emission Uncertainty Analysis,0.85
-186,1,Wetland Water Table Measurement,0.95
-187,1,Spectral Analysis in Chemical Identification,0.85
-188,1,Advanced Antenna Design and Applications,0.95
-189,1,Conservation of Endangered Fish Species,0.95
-190,1,Digital Document Annotation Technologies,0.85
-191,1,Orthogonal Mechanisms and Robotics,0.95
-192,1,Image Fusion and Resolution Enhancement,0.85
-193,1,Preventive Technologies for Crisis Management,0.95
-194,1,Orbital Mechanics and Shape Dynamics,0.85
-195,1,African Rainfall Modeling and Analysis,0.85
-196,1,Controlled RF Exposure in Animal Experiments,0.85
-197,1,Oceanographic Monitoring under Cloudy Conditions,0.90
-198,1,Transposable Elements and Meiotic Recombination,0.85
-199,1,Fractal Antenna Design and Optimization,0.95
-200,1,Neural Networks in System Identification,0.85
-201,1,High Dynamics GNSS Applications,0.85
-202,1,Dynamic Tactical Networking Systems,0.85
-203,1,Quantifying Emissions Reductions in Projects,0.85
-204,1,Historical Astronomy and Latitude Measurements,0.85
-205,1,Automatic Differentiation Optimization,0.85
-206,1,Object Recognition and Neural Networks,0.95
-207,1,Feature-Aided Tracking in Radar Systems,0.85
-208,1,Aeronautical Communication Systems,0.85
-209,1,GPS Positioning Quality Assessment,0.85
-210,1,Climate Forecasting Using SST Anomalies,0.85
-211,1,Glacial Dynamics and Ice Stream Configuration,0.95
-212,1,Innovative Architectural Design,0.85
-213,1,Doppler Frequency Offset Estimation,0.85
-214,1,Sustainable Development of Large Lakes,0.85
-215,1,Bidirectional Semiconductor Lasers,0.85
-216,1,Environmental Impact Assessment,0.85
-217,1,Humidity Measurement in Gas-Insulated Equipment,0.85
-218,1,Neuropsychiatric Effects of Solvent Exposure,0.85
-219,1,Self-Affine Gravity Modeling,0.95
-220,1,ICT for Human Resource Development,0.85
-221,1,Centroid Fluctuations in Imaging,0.85
-222,1,Cluster-Plot Design and Correction Methods,0.85
-223,1,Automated Water Quality Monitoring,0.85
-224,1,Environmental Stress Assessment,0.85
-225,1,Remote Sensing and Surface Analysis,0.85
-226,1,Advancements in Quantum Computing,0.95
-227,1,Acoustic Remote Sensing Techniques,0.85
-228,1,Forest Resistance and GIS Integration,0.85
-229,1,Korean IT Leadership and Innovation,0.85
-230,1,Mesozoic Geological Processes in Antarctica,0.95
-231,1,Micrometeorological Aspects of Irrigation,0.85
-232,1,Marine Mapping and Seafloor Imaging,0.85
-233,1,Satellite Orbital Transportation Systems,0.85
-234,1,Dialect Topography and Isographic Analysis,0.85
-235,1,Shoulder Instability and Treatment,0.85
-236,1,Formation Control in Space Missions,0.85
-237,1,Home Networking Technologies,0.85
-238,1,Unknown Objects in Low Earth Orbit,0.85
-239,1,Kalman Filter Applications in Communication Systems,0.85
-240,1,Advanced Machine Learning Techniques,0.85
-241,1,Semiotics and Linguistic Analysis,0.85
-242,1,Space-Time Block Codes in Communication,0.85
-243,1,Advancements in Quantum Computing,0.95
-244,1,Amplifier Design and Performance Optimization,0.85
-245,1,Landslide Analysis Using Remote Sensing,0.95
-246,1,Neural Network Control Systems,0.85
-247,1,Real-Time Remote Sensing Image Processing,0.85
-248,1,Storm Surge Damage Assessment,0.95
-249,1,Image Enhancement in Remote Sensing,0.85
-250,1,Remote Sensing for Archaeological Detection,0.85
-251,1,Urban Remote Sensing for Land Use,0.85
-252,1,Urban Park Location Planning,0.85
-253,1,Remote Sensing and Regional Stability,0.95
-254,1,Advanced Machine Learning Techniques,0.85
-255,1,Geospatial Analysis in the UAE,0.85
-256,1,Advanced Machine Learning Techniques,0.85
-257,1,Overfitting Control in Genetic Programming,0.85
-258,1,Energy-Based Land-Surface Modelling,0.85
-259,1,Atmospheric Monitoring via Attenuation Measurements,0.85
-260,1,Remote Sensing and Delta Dynamics,0.95
-261,1,Depolarization in Remote Sensing,0.90
-262,1,Remote Sensing for Landscape Classification,0.85
-263,1,Advancements in Quantum Computing,0.85
-264,1,Remote Sensing and NDVI Analysis,0.85
-265,1,Tidal Flow Simulation in Estuaries,0.95
-266,1,Remote Chemical Detection Technologies,0.85
-267,1,Non-Carbon Based Life Research,0.85
-268,1,Riverine Ecosystems and Fish Populations,0.85
-269,1,Statistical Analysis of Forest Damage,0.85
-270,1,High-Sensitivity Infrared Imaging,0.85
-271,1,Health Impacts of Natural Disasters,0.85
-272,1,Interference in Remote Sensing,0.85
-273,1,FMCW Radar Design and Applications,0.85
-274,1,Wellspring Conservation in Limestone Areas,0.85
-275,1,Marine Mammal Collision Avoidance Systems,0.90
-276,1,Signal Processing and Classification Techniques,0.85
-277,1,Space-Based Remote Sensing Technologies,0.85
-278,1,Remote Sensing and BRDF Analysis,0.85
-279,1,Urban Vegetation Coverage Analysis,0.85
-280,1,Remote Sensing and Ecosystem Management,0.85
-281,1,Optical Data Consistency in Transistor Reliability,0.95
-282,1,Geographical Information Systems for Risk Assessment,0.85
-283,1,Electric Power Systems for Satellites,0.95
-284,1,Environmental Impact of Historical Agriculture,0.85
-285,1,Enhanced Neural Network Techniques,0.85
-286,1,Planetary Sprite Event Detection,0.90
-287,1,Tree Canopy Management in Orchards,0.85
-288,1,Microwave Vibration Measurement Technology,0.85
-289,1,GPS-based Atmospheric Water Vapor Sensing,0.95
-290,1,Lightning-Based Precipitation Forecasting,0.85
-291,1,Functional Data Analysis in Agriculture,0.85
-292,1,Frequency Agile Materials in Electronics,0.85
-293,1,Automated Information Extraction in Remote Sensing,0.85
-294,1,Passive Detection of Toxic Agents,0.95
-295,1,Soil Surface Characterization,0.95
-296,1,Forest Reserve Boundary Stability,0.90
-297,1,Real-time Data Processing for Aerospace,0.85
-298,1,Pioneering Weather Radar Research,0.90
-299,1,Gamma Ray Emission from Neutron Capture,0.95
-300,1,Classifier Fusion in Hyperspectral Imagery,0.90
-301,1,Remote Sensing for Urban Analysis,0.95
-302,1,Infrasonic Phenomena and Thunderstorm Activity,0.85
-303,1,Crown Cover Estimation Techniques,0.95
-304,1,Multispectral Imaging for Medical Detection,0.85
-305,1,Semantic Accuracy in Remote Sensing,0.85
-306,1,Multilevel Training Strategies for Tool Adoption,0.85
-307,1,Remote Sensing of Inundation,0.85
-308,1,Inverse Black-Body Radiation Solutions,0.85
-309,1,Coastal Water Quality Monitoring,0.85
-310,1,Mobile Ecosystem Monitoring,0.85
-311,1,Self-Reconfigurable Robotics and Docking,0.85
-312,1,Multispectral Imaging for Plant Water Analysis,0.85
-313,1,High-Latitude Climate Change Research,0.95
-314,1,Novelty Detection in Ocean Color Algorithms,0.85
-315,1,Geoscience Data Management,0.85
-316,1,Mars Exploration and Historical Observations,0.85
-317,1,Geohazard Monitoring and Prediction,0.95
-318,1,Vegetation Carbon and Water Fluxes,0.85
-319,1,Government Role in Industry Innovation,0.85
-320,1,Telescope Design and Performance Evaluation,0.95
-321,1,Spatial Coherence in Satellite Imagery,0.85
-322,1,Enhanced SOAP Protocols for Distributed Systems,0.85
-323,1,Proximity-Based Estimation in Signal Processing,0.85
-324,1,Environmental Monitoring of Sediment Plumes,0.85
-325,1,Environmental Impact of Fuel Spills,0.85
-326,1,Geomorphological Impact on Pollution,0.85
-327,1,Climate Variability in Arctic Ecosystems,0.85
-328,1,Spatial Variability in Evapotranspiration,0.95
-329,1,Soil Erosion Risk Mapping,0.95
-330,1,Lightning and Rainfall Correlation,0.85
-331,1,Remote Sensing of Agricultural Crops,0.85
-332,1,Digital Elevation Model Updating,0.85
-333,1,Visual Analytics in Archaeology,0.85
 `;
 
-      const KEYWORDS_JSONL = `{"topic_id": 0, "size": 46768, "keywords": ["classification", "data", "image", "detection", "method", "images", "based", "proposed", "hyperspectral", "spectral", "sensing", "remote", "model", "remote sensing", "land"], "representatives": [{"id": 444165, "year": 2017, "doi": "10.1117/1.JRS.11.026009", "title": "Assessing the performance of multiple spectral-spatial features of a hyperspectral image for classification of urban land cover classes using support vector machines and artificial neural network"}, {"id": 197962, "year": 2022, "doi": "10.1007/s12524-022-01563-2", "title": "A New Method for Object-Based Hyperspectral Image Classification"}, {"id": 12904, "year": 2025, "doi": "10.1016/j.rsase.2025.101727", "title": "Optimised multi-hierarchical feature fusion with multi-kernel CNN and spectral-spatial convolutions for remote sensing image classification"}, {"id": 1244, "year": 2025, "doi": "10.1109/ACCESS.2025.3526476", "title": "A Novel Remote Sensing Recognition Using Modified GMM Segmentation and DenseNet"}, {"id": 5572, "year": 2025, "doi": "10.3390/jimaging11060179", "title": "Optimizing Remote Sensing Image Retrieval Through a Hybrid Methodology"}]}
-{"topic_id": 1, "size": 44071, "keywords": ["forest", "data", "vegetation", "species", "land", "tree", "cover", "model", "using", "study", "based", "drought", "area", "biomass", "areas"], "representatives": [{"id": 54003, "year": 2025, "doi": "10.1080/20964471.2025.2459300", "title": "Estimating vegetation indices and biophysical parameters for Central European temperate forests with Sentinel-1 SAR data and machine learning"}, {"id": 376046, "year": 2015, "doi": "10.1016/j.foreco.2015.08.027", "title": "Remote sensing proxies of productivity and moisture predict forest stand type and recovery rate following experimental harvest"}, {"id": 182617, "year": 2019, "doi": "10.1016/j.rse.2019.02.021", "title": "Modeling tropical montane forest biomass, productivity and canopy traits with multispectral remote sensing data"}, {"id": 15935, "year": 2024, "doi": "10.1016/j.scitotenv.2024.173940", "title": "Mapping and analyzing the spatiotemporal dynamics of forest aboveground biomass in the ChangZhuTan urban agglomeration using a time series of Landsat images and meteorological data from 2010 to 2020"}, {"id": 191027, "year": 2019, "doi": "10.1016/j.rse.2019.01.027", "title": "Quantifying structural diversity to better estimate change at mountain forest margins"}]}
-{"topic_id": 2, "size": 43753, "keywords": ["land", "water", "data", "urban", "flood", "area", "study", "river", "model", "use", "areas", "changes", "using", "spatial", "based"], "representatives": [{"id": 6349, "year": 2024, "doi": "10.1016/j.envres.2023.117962", "title": "Climate uncertainty and vulnerability of urban flooding associated with regional risk using multi-criteria analysis in Mumbai, India"}, {"id": 48138, "year": 2023, "doi": "10.3390/su15097398", "title": "Assessing Coastal Land-Use and Land-Cover Change Dynamics Using Geospatial Techniques"}, {"id": 17705, "year": 2025, "doi": "10.1016/j.agwat.2024.109254", "title": "Surface water and flood-based agricultural systems: Mapping and modelling long-term variability in the Senegal river floodplain"}, {"id": 14837, "year": 2025, "doi": "10.1109/JSTARS.2025.3587519", "title": "Three Decades of Land Cover Dynamics in a Boreal Coastal Basin: A Multisensor Spectral Index and Machine Learning Approach Using Landsat Data and GB-SAR Data"}, {"id": 4841, "year": 2024, "doi": "10.1109/JSTARS.2024.3430505", "title": "Impact of Land Use/Land Cover Changes on Urban Flooding: A Case Study of the Greater Bay Area, China"}]}
-{"topic_id": 3, "size": 40753, "keywords": ["data", "sea", "water", "ocean", "surface", "model", "satellite", "wind", "wave", "using", "coastal", "results", "high", "based", "chlorophyll"], "representatives": [{"id": 729764, "year": 2002, "doi": "10.1016/S0034-4257(01)00335-2", "title": "Algal biomass and sea surface temperature in the Mediterranean Basin - Intercomparison of data from various satellite sensors, and implications for primary production estimates"}, {"id": 369624, "year": 2017, "doi": "10.3390/rs9040343", "title": "A Novel Statistical Approach for Ocean Colour Estimation of Inherent Optical Properties and Cyanobacteria Abundance in Optically Complex Waters"}, {"id": 564076, "year": 2011, "doi": "10.1016/j.seares.2010.08.002", "title": "Cloud filling of ocean colour and sea surface temperature remote sensing products over the Southern North Sea by the Data Interpolating Empirical Orthogonal Functions methodology"}, {"id": 171071, "year": 2020, "doi": "10.3390/rs12172774", "title": "Empirical Relationships between Remote-Sensing Reflectance and Selected Inherent Optical Properties in Nordic Sea Surface Waters for the MODIS and OLCI Ocean Colour Sensors"}, {"id": 405274, "year": 2016, "doi": "10.1117/12.2225875", "title": "High-resolution shipboard measurements of phytoplankton - a way forward for enhancing the utility of satellite SST and Chlorophyll for mapping microscale features and frontal zones in coastal waters"}]}
-{"topic_id": 4, "size": 34345, "keywords": ["aerosol", "lidar", "dust", "data", "ozone", "measurements", "model", "satellite", "air", "atmospheric", "emissions", "aod", "observations", "cloud", "based"], "representatives": [{"id": 614999, "year": 2008, "doi": "10.1016/j.atmosenv.2008.02.033", "title": "Radiative and dynamic effects of absorbing aerosol particles over the Pearl River Delta, China"}, {"id": 825982, "year": 2003, "doi": "10.1029/2002JD002717", "title": "Annual cycle of global distributions of aerosol optical depth from integration of MODIS retrievals and GOCART model simulations - art. no. 4128"}, {"id": 620675, "year": 2009, "doi": "10.1029/2009JD011895", "title": "Inferring the composition and concentration of aerosols by combining AERONET and MPLNET data: Comparison with other measurements and utilization to evaluate GCM output"}, {"id": 708358, "year": 2004, "doi": null, "title": "A mesoscale aerosol variability study in the Asian outflow region in support of calipso validation"}, {"id": 601165, "year": 2008, "doi": "10.5194/acp-8-737-2008", "title": "Capturing vertical profiles of aerosols and black carbon over the Indian Ocean using autonomous unmanned aerial vehicles"}]}
-{"topic_id": 5, "size": 34145, "keywords": ["satellite", "communication", "network", "proposed", "performance", "channel", "based", "data", "systems", "scheme", "paper", "networks", "signal", "modulation", "algorithm"], "representatives": [{"id": 487440, "year": 2016, "doi": "10.1002/sat.1172", "title": "Energy-efficient link resource allocation in the multibeam satellite downlink under QoS constraints"}, {"id": 94813, "year": 2025, "doi": "10.1109/JSAC.2024.3460064", "title": "Massive MIMO-OTFS-Based Random Access for Cooperative LEO Satellite Constellations"}, {"id": 105122, "year": 2025, "doi": "10.1007/s11277-025-11856-7", "title": "DVB-RCS2 Satellite Link Optimization for Efficient Data Transmission Using Cascaded Coding Approach in MIMO-OFDM System"}, {"id": 114904, "year": 2025, "doi": "10.1109/AERO63441.2025.11068483", "title": "Enhancing Space Situational Awareness: Robust Millimeter-Wave Satellite Communication Solutions"}, {"id": 113632, "year": 2024, "doi": "10.1109/ICCC62479.2024.10681896", "title": "Closed-Form Outage Probability Analysis For OTFS-Based Multi-Beam LEO Satellites"}]}
-{"topic_id": 6, "size": 34002, "keywords": ["satellite", "space", "control", "based", "method", "design", "model", "orbit", "paper", "satellites", "attitude", "proposed", "time", "using", "results"], "representatives": [{"id": 544099, "year": 2013, "doi": null, "title": "OPTIMAL MAINTENANCE OF RELATIVE CIRCULAR INERTIAL MOTION FOR NULLING INTERFEROMETRY APPLICATIONS"}, {"id": 789377, "year": 2002, "doi": null, "title": "Modeling and control - Flexible structure spacecraft"}, {"id": 219994, "year": 2022, "doi": "10.1109/AERO53065.2022.9843283", "title": "Dynamics and Control of Helical Arrays in Low Earth Orbit"}, {"id": 109579, "year": 2023, "doi": "10.1063/5.0150095", "title": "Study on stability of formation for gravity field exploration subjected to disturbance based on prescribed performance control"}, {"id": 778640, "year": 2003, "doi": null, "title": "Nonlinear dynamics of the small-mass gyromoment AOCS with plasma thrusters for communication satellites"}]}
-{"topic_id": 7, "size": 32852, "keywords": ["patients", "study", "constellation", "based", "clinical", "treatment", "social", "data", "syndrome", "satellite", "research", "analysis", "disease", "results", "different"], "representatives": [{"id": 547915, "year": 2014, "doi": "10.1371/journal.pone.0110271", "title": "Social Determinants and the Classification of Disease: Descriptive Epidemiology of Selected Socially Mediated Disease Constellations"}, {"id": 350495, "year": 2021, "doi": "10.1186/s13195-021-00846-z", "title": "Brain connectivity and metacognition in persons with subjective cognitive decline (COSCODE): rationale and study design"}, {"id": 161350, "year": 2025, "doi": "10.1017/gmh.2025.16", "title": "Symptom networks of common mental disorders in public versus private healthcare settings in India"}, {"id": 159815, "year": 2025, "doi": "10.1136/bmjopen-2024-092612", "title": "Pathway Of Low Anterior Resection syndrome (LARS) relief after Surgery (POLARiS)<bold>:</bold> protocol for an international, open-label, multi-arm, phase 3 randomised superiority trial within a cohort, with economic evaluation, process evaluation and qualitative sub-study, to explore the natural history of LARS and compare transanal irrigation and sacral neuromodulation to optimised conservative management for people with major LARS following a high or low anterior resection for colorectal cancer"}, {"id": 219123, "year": 2020, "doi": "10.2196/22756", "title": "Informing the Development of a Digital Health Platform Through Universal Points of Care: Qualitative Survey Study"}]}
-{"topic_id": 8, "size": 32775, "keywords": ["imaging", "spectral", "optical", "based", "hyperspectral", "high", "data", "sensor", "image", "infrared", "using", "detection", "method", "images", "used"], "representatives": [{"id": 454118, "year": 2018, "doi": "10.1117/12.2291751", "title": "Portable LWIR hyperspectral imager based on a MEMS Fabry-Perot interferometer and a broadband microbolometric detector array"}, {"id": 82286, "year": 2023, "doi": "10.3788/gzxb20235205.0552223", "title": "Development of Snapshot Hyperspectral Imager Based on Microlens Array"}, {"id": 794926, "year": 2000, "doi": "10.1255/jnirs.266", "title": "Visualising chemical composition and reaction kinetics by the near infrared multispectral imaging technique"}, {"id": 204510, "year": 2019, "doi": "10.1117/12.2510555", "title": "Optimization of Light Transmission through an Excitation-scan Hyperspectral Mirror Array System"}, {"id": 157386, "year": 2025, "doi": "10.3788/AOS241230", "title": "Design and Realization of Spectral Imaging Systems Based on Microlens Arrays"}]}
-{"topic_id": 9, "size": 31936, "keywords": ["cloud", "precipitation", "data", "rainfall", "satellite", "model", "clouds", "water", "based", "observations", "surface", "radar", "temperature", "using", "results"], "representatives": [{"id": 906030, "year": 2003, "doi": "10.1175/1520-0493(2003)131<1240:MRACOO>2.0.CO;2", "title": "Model rain and clouds over oceans: Comparison with SSM/I observations"}, {"id": 225668, "year": 2021, "doi": "10.1007/s00703-020-00765-y", "title": "Impacts of satellite data assimilation with different model vertical levels on QPFs downstream of the Tibetan Plateau"}, {"id": 590604, "year": 2011, "doi": "10.1175/2011JHM1257.1", "title": "Satellite and Numerical Model Investigation of Two Heavy Rain Events over the Central Mediterranean"}, {"id": 716914, "year": 2001, "doi": "10.1029/2000JD900478", "title": "A method for assessing the quality of model-based estimates of ground temperature and atmospheric moisture using satellite data"}, {"id": 591882, "year": 2008, "doi": null, "title": "Combined IR-microwave satellite retrieval of temperature and moisture profiles using the ICI inversion system and its application in the MM5 model"}]}
-{"topic_id": 10, "size": 31740, "keywords": ["data", "lidar", "point", "based", "3d", "method", "detection", "road", "proposed", "using", "information", "object", "cloud", "sensor", "model"], "representatives": [{"id": 261151, "year": 2022, "doi": "10.1155/2022/2771085", "title": "Roadside LiDAR Vehicle Detection and Tracking Using Range and Intensity Background Subtraction"}, {"id": 48449, "year": 2023, "doi": "10.3788/AOS240817", "title": "Laser Simultaneous Localization and Mapping Algorithm Based on Optimized Ground Segmentation and Closed-Loop Detection"}, {"id": 454071, "year": 2018, "doi": "10.33012/2018.15958", "title": "Modeling and Understanding LiDAR Data for Absolute and Relative Positioning"}, {"id": 75717, "year": 2023, "doi": "10.1109/ISCAS46773.2023.10181371", "title": "Aerial LiDAR-based 3D Object Detection and Tracking for Traffic Monitoring"}, {"id": 96813, "year": 2024, "doi": "10.1088/1361-6501/ad646c", "title": "A dynamic object removing 3D reconstruction system based on multi-sensor fusion"}]}
-{"topic_id": 11, "size": 30796, "keywords": ["sar", "data", "radar", "method", "target", "imaging", "detection", "proposed", "image", "based", "images", "algorithm", "aperture", "paper", "range"], "representatives": [{"id": 212415, "year": 2019, "doi": "10.3390/s19071649", "title": "A Data-Driven Approach to SAR Data-Focusing"}, {"id": 199217, "year": 2021, "doi": null, "title": "SIMULATION OF AUTOMATIC TARGET RECOGNITION IN HIGH SPEED MANEUVERING ENVIRONMENT BASED ON SAR IMAGING"}, {"id": 242567, "year": 2022, "doi": "10.3390/app12178922", "title": "Target-Oriented High-Resolution and Wide-Swath Imaging with an Adaptive Receiving-Processing-Decision Feedback Framework"}, {"id": 422481, "year": 2017, "doi": null, "title": "Analysis of Synthetic Aperture Radar Image Enchancement Algorithm"}, {"id": 596235, "year": 2009, "doi": "10.1007/978-1-4020-8883-4_29", "title": "SHIP DETECTION AND CHARACTERIZATION USING POLARIMETRIC SAR DATA"}]}
-{"topic_id": 12, "size": 29063, "keywords": ["data", "crop", "model", "yield", "using", "spectral", "based", "lai", "vegetation", "models", "hyperspectral", "rice", "study", "leaf", "used"], "representatives": [{"id": 65079, "year": 2024, "doi": "10.1016/j.asr.2022.11.047", "title": "Retrieval of crop biophysical-biochemical variables from airborne AVIRIS-NG data using hybrid inversion of PROSAIL-D"}, {"id": 406996, "year": 2018, "doi": "10.3390/rs10071138", "title": "A Comparison of Crop Parameters Estimation Using Images from UAV-Mounted Snapshot Hyperspectral Sensor and High-Definition Digital Camera"}, {"id": 173934, "year": 2022, "doi": "10.1016/j.biosystemseng.2022.08.005", "title": "High-resolution multispectral imagery and LiDAR point cloud fusion for the discrimination and biophysical characterisation of vegetable crops at different levels of nitrogen"}, {"id": 18484, "year": 2024, "doi": "10.1016/j.compag.2024.108942", "title": "Estimation of wheat biophysical variables through UAV hyperspectral remote sensing using machine learning and radiative transfer models"}, {"id": 44391, "year": 2024, "doi": "10.3390/agriculture14071110", "title": "Unmanned Aerial Vehicle-Measured Multispectral Vegetation Indices for Predicting LAI, SPAD Chlorophyll, and Yield of Maize"}]}
-{"topic_id": 13, "size": 23048, "keywords": ["activity", "compounds", "sar", "inhibitors", "structure", "compound", "series", "derivatives", "potent", "mu", "receptor", "binding", "cell", "studies", "new"], "representatives": [{"id": 296540, "year": 2022, "doi": "10.1016/j.molstruc.2022.133587", "title": "An efficient p-TSA catalyzed synthesis of some new substituted- (5-hydroxy-3-phenylisoxazol-4-yl)-1,3-dimethyl-1 H-chromeno[2,3-d] pyrimidine-2,4(3H,5H)-dione/3,3-dimethyl-2H-xanthen-1(9H)-one scaffolds and evaluation of their pharmacological and computational investigations"}, {"id": 149584, "year": 2024, "doi": "10.3390/molecules29143387", "title": "Design, Synthesis, and Characterization of Novel Thiazolidine-2,4-Dione-Acridine Hybrids as Antitumor Agents"}, {"id": 629203, "year": 2010, "doi": "10.1016/j.bmcl.2010.07.009", "title": "Discovery of substituted benzyl tetrazoles as histamine H3 receptor antagonists"}, {"id": 481037, "year": 2017, "doi": "10.1016/j.ejmech.2017.01.044", "title": "Dregamine and tabernaemontanine derivatives as ABCB1 modulators on resistant cancer cells"}, {"id": 643077, "year": 2010, "doi": "10.1021/jm901184n", "title": "Development of (S)-N6-(2-(4-(Isoquinolin-1-yl)piperazin-1-yl)ethyl)-N6-propyl-4,5,6, 7-tetrahydrobenzo[d]-thiazole-2,6-diamine and Its Analogue as a D3 Receptor Preferring Agonist: Potent in Vivo Activity in Parkinson's Disease Animal Models"}]}
-{"topic_id": 14, "size": 22366, "keywords": ["gnss", "positioning", "navigation", "satellite", "gps", "time", "method", "based", "accuracy", "signal", "data", "proposed", "receiver", "frequency", "signals"], "representatives": [{"id": 112257, "year": 2024, "doi": "10.1109/ICEENG58856.2024.10566432", "title": "Evaluation of Code & Carrier based GNSS Positioning Techniques for Positioning Accuracy Using Low Cost GNSS Receivers"}, {"id": 152693, "year": 2025, "doi": "10.3390/electronics14050826", "title": "Robust Regression and Redundant Measurement Noise Estimation Adaptive Filtering for Localization in Urban Environments"}, {"id": 462694, "year": 2014, "doi": null, "title": "The Use of Multiple GNSS Constellations with Strict Quality Constraints for Achieving High Accuracy in Urban Environments"}, {"id": 100310, "year": 2025, "doi": "10.1088/1361-6501/ae035b", "title": "Performance analysis of geostationary orbit satellite autonomous orbit determination algorithm based on few Global Navigation Satellite System satellites"}, {"id": 116220, "year": 2023, "doi": "10.1155/2023/6709989", "title": "Analysis of Multifrequency GNSS Signals and an Improved Single-Epoch RTK Method for Medium-Long Baseline"}]}
-{"topic_id": 15, "size": 20903, "keywords": ["ray", "galaxies", "mass", "similar", "stars", "satellite", "data", "10", "galaxy", "energy", "high", "based", "space", "star", "gamma"], "representatives": [{"id": 100664, "year": 2024, "doi": "10.3847/1538-4357/ad3076", "title": "Gas and Star Formation in Satellites of Milky Way Analogs"}, {"id": 533915, "year": 2016, "doi": "10.3847/0004-637X/827/2/108", "title": "MEASUREMENTS OF EXTRAGALACTIC BACKGROUND LIGHT FROM THE FAR UV TO THE FAR IR FROM DEEP GROUND- AND SPACE-BASED GALAXY COUNTS"}, {"id": 756533, "year": 1991, "doi": null, "title": "GALAXY COUNTS AND CONTRIBUTIONS TO THE BACKGROUND-RADIATION FROM 1 MU-M TO 1000 MU-M"}, {"id": 659407, "year": 2010, "doi": "10.1088/0004-637X/720/2/1772", "title": "ON THE MORPHOLOGY OF THE ELECTRON-POSITRON ANNIHILATION EMISSION AS SEEN BY SPI/INTEGRAL"}, {"id": 343461, "year": 2022, "doi": "10.3847/1538-4357/ac9b19", "title": "Is the Core-cusp Problem a Matter of Perspective? Jeans Anisotropic Modeling against Numerical Simulations"}]}
-{"topic_id": 16, "size": 20216, "keywords": ["solar", "field", "magnetic", "data", "model", "ionospheric", "satellite", "plasma", "electron", "density", "ionosphere", "time", "observed", "tec", "observations"], "representatives": [{"id": 415743, "year": 2017, "doi": "10.1016/j.asr.2016.11.031", "title": "Ionospheric electron density perturbations during the 7-10 March 2012 geomagnetic storm period"}, {"id": 843913, "year": 2002, "doi": "10.1029/2001JA900174", "title": "Testing global storm-time electric field models using particle spectra on multiple spacecraft - art. no. 1194"}, {"id": 313706, "year": 2022, "doi": "10.3390/atmos13040518", "title": "Low-Latitude Ionospheric Responses and Coupling to the February 2014 Multiphase Geomagnetic Storm from GNSS, Magnetometers, and Space Weather Data"}, {"id": 898773, "year": 2005, "doi": "10.5194/angeo-23-1867-2005", "title": "A case study testing the cavity mode model of the magnetosphere"}, {"id": 702846, "year": 1996, "doi": "10.1007/s005850050398", "title": "Global modelling study (GSM TIP) of the ionospheric effects of excited N-2, convection and heat fluxes by comparison with EISCAT and satellite data for 31 July 1990"}]}
-{"topic_id": 17, "size": 17652, "keywords": ["data", "fault", "gravity", "earthquake", "satellite", "model", "slip", "time", "surface", "volcanic", "deformation", "using", "field", "grace", "km"], "representatives": [{"id": 419149, "year": 2018, "doi": "10.1016/j.geog.2017.09.005", "title": "Goce derived geoid changes before the Pisagua 2014 earthquake"}, {"id": 499045, "year": 2015, "doi": "10.1016/j.jsames.2015.09.014", "title": "Gradients from GOCE reveal gravity changes before Pisagua Mw=8.2 and Iquique Mw=7.7 large megathrust earthquakes"}, {"id": 829813, "year": 1997, "doi": null, "title": "The Antofagasta 1995 earthquake: Crustal deformation pattern as observed by GPS and D-INSAR"}, {"id": 228418, "year": 2021, "doi": "10.3389/feart.2020.581396", "title": "Megathrust Slip Behavior for Great Earthquakes Along the Sumatra-Andaman Subduction Zone Mapped From Satellite GOCE Gravity Field Derivatives"}, {"id": 521951, "year": 2014, "doi": "10.1093/gji/ggu315", "title": "Ocean contribution to seismic gravity changes: the sea level equation for seismic perturbations revisited"}]}
-{"topic_id": 18, "size": 17379, "keywords": ["ice", "snow", "sea", "glacier", "sea ice", "data", "surface", "glaciers", "model", "cover", "area", "water", "using", "satellite", "arctic"], "representatives": [{"id": 37910, "year": 2023, "doi": "10.5194/tc-17-4903-2023", "title": "Combined GNSS reflectometry-refractometry for automated and continuous in situ surface mass balance estimation on an Antarctic ice shelf"}, {"id": 925637, "year": 2005, "doi": null, "title": "New results on the changing cryosphere from geostatistical interpolation and classification of first and second order spatial variables"}, {"id": 251615, "year": 2022, "doi": "10.1016/j.rse.2022.113307", "title": "Uncertainty of ICESat-2 ATL06-and ATL08-derived snow depths for glacierized and vegetated mountain regions"}, {"id": 541777, "year": 2016, "doi": "10.1080/07038992.2016.1166043", "title": "Variations of Annual Minimum Snow and Ice Extent over Canada and Neighboring Landmass Derived from MODIS 250-m Imagery for 2000-2014"}, {"id": 862204, "year": 1991, "doi": null, "title": "OPERATIONAL SATELLITES AND THE GLOBAL MONITORING OF SNOW AND ICE"}]}
-{"topic_id": 19, "size": 16681, "keywords": ["data", "information", "remote", "sensing", "based", "remote sensing", "geospatial", "satellite", "spatial", "paper", "earth", "image", "processing", "analysis", "time"], "representatives": [{"id": 665973, "year": 2008, "doi": "10.1109/VECIMS.2008.4592757", "title": "Virtual Data Warehouse Architecture for Real-Time WebGIS"}, {"id": 371350, "year": 2014, "doi": null, "title": "Using Space-based Downstream Services for Urban Management in Smart Cities"}, {"id": 939373, "year": 2002, "doi": null, "title": "Virtual remote sensing: A holistic modeling approach"}, {"id": 367042, "year": 2016, "doi": "10.1117/12.2243059", "title": "Environmental monitoring in peat bog areas by change detection methods"}, {"id": 387492, "year": 2018, "doi": "10.1080/17538947.2017.1326984", "title": "Ad-hoc combination and analysis of heterogeneous and distributed spatial data for environmental monitoring - design and prototype of a web-based solution"}]}
-{"topic_id": 20, "size": 16481, "keywords": ["soil", "groundwater", "water", "data", "study", "area", "spectral", "using", "model", "used", "quality", "potential", "remote", "based", "results"], "representatives": [{"id": 78890, "year": 2023, "doi": "10.1016/j.marpolbul.2022.114555", "title": "Remote sensing and statistical analyses for exploration and prediction of soil salinity in a vulnerable area to seawater intrusion"}, {"id": 172641, "year": 2021, "doi": "10.1016/j.rsase.2021.100498", "title": "Application of remote sensing indices to digital soil salt composition and ionic strength mapping in the east shore of Urmia Lake, Iran"}, {"id": 215449, "year": 2020, "doi": "10.1007/s12665-020-09235-5", "title": "Geospatial applications in delineating groundwater prospect zones in a hard rock terrain: an integrated approach"}, {"id": 11710, "year": 2023, "doi": "10.32604/phyton.2023.027267", "title": "Sentinel-2 Satellite Imagery Application to Monitor Soil Salinity and Calcium Carbonate Contents in Agricultural Fields"}, {"id": 177039, "year": 2022, "doi": "10.1016/j.scitotenv.2022.157416", "title": "Multidimensional soil salinity data mining and evaluation from different satellites"}]}
-{"topic_id": 21, "size": 15118, "keywords": ["image", "images", "resolution", "fusion", "data", "spectral", "spatial", "method", "proposed", "noise", "based", "compression", "high", "algorithm", "sensing"], "representatives": [{"id": 374868, "year": 2018, "doi": "10.1117/12.2307623", "title": "Pansharpening of images acquired with color filter arrays"}, {"id": 364894, "year": 2017, "doi": "10.1049/iet-spr.2016.0141", "title": "HS remote sensing image restoration using fusion with MS images by EM algorithm"}, {"id": 362006, "year": 2018, "doi": "10.1117/1.JRS.12.035017", "title": "Spectral preservation fusion for remote sensing images using focus measure operators based on fast discrete curvelet transform and hyperspherical color space"}, {"id": 406734, "year": 2018, "doi": "10.1016/j.isprsjprs.2018.10.009", "title": "Sparsity inspired pan-sharpening technique using multi-scale learned dictionary"}, {"id": 45754, "year": 2025, "doi": "10.1088/2631-8695/ae0869", "title": "Hybrid denoising framework with deep learning and optimization for mixed noise removal in remote sensing images"}]}
-{"topic_id": 22, "size": 14848, "keywords": ["soil", "moisture", "soil moisture", "data", "water", "surface", "model", "et", "sm", "vegetation", "land", "using", "based", "satellite", "irrigation"], "representatives": [{"id": 217882, "year": 2021, "doi": "10.3390/rs13244968", "title": "Improvement of the Soil Moisture Retrieval Procedure Based on the Integration of UAV Photogrammetry and Satellite Remote Sensing Information"}, {"id": 593382, "year": 2010, "doi": "10.1117/12.865096", "title": "Surface soil humidity retrieval by means of a semi-empirical coupled SAR model"}, {"id": 738894, "year": 2002, "doi": "10.1029/2001JD000958", "title": "Modeling approaches to assimilating L band passive microwave observations over land surfaces - art. no. 4219"}, {"id": 40496, "year": 2024, "doi": "10.1007/s10668-023-03635-w", "title": "Surface soil moisture estimate from Sentinel-1 and Sentinel-2 data in agricultural fields in areas of high vulnerability to climate variations: the Marche region (Italy) case study"}, {"id": 939832, "year": 2004, "doi": "10.1117/12.565239", "title": "Surface soil moisture retrieval on agricultural catchments of Navarre, Spain through RADARSAT-1 SAR data:: first results"}]}
-{"topic_id": 23, "size": 13869, "keywords": ["landslide", "deformation", "data", "subsidence", "insar", "landslides", "phase", "sar", "area", "method", "monitoring", "study", "using", "model", "based"], "representatives": [{"id": 249001, "year": 2021, "doi": "10.1016/j.rse.2021.112400", "title": "InSAR monitoring of creeping landslides in mountainous regions: A case study in Eldorado National Forest, California"}, {"id": 70390, "year": 2024, "doi": "10.3390/app14041632", "title": "Landslide Detection Based on Multi-Direction Phase Gradient Stacking, with Application to Zhouqu, China"}, {"id": 252922, "year": 2022, "doi": "10.3390/rs14071759", "title": "InSAR Study of Landslides: Early Detection, Three-Dimensional, and Long-Term Surface Displacement Estimation-A Case of Xiaojiang River Basin, China"}, {"id": 42497, "year": 2023, "doi": "10.4408/IJEGE.2023-01.S-11", "title": "ASSESSMENT OF MT-INSAR PROCESSING TECHNIQUES FOR SLOW-MOVING LANDSLIDES MONITORING IN CUENCA (ECUADOR) THROUGH DOUBLE-BAND SAR SATELLITE"}, {"id": 443626, "year": 2018, "doi": "10.1016/j.enggeo.2018.04.015", "title": "Detection and displacement characterization of landslides using multi- temporal satellite SAR interferometry: A case study of Danba County in the Dadu River Basin"}]}
-{"topic_id": 24, "size": 13825, "keywords": ["urban", "lst", "data", "temperature", "surface", "land", "calibration", "model", "heat", "satellite", "reflectance", "method", "thermal", "using", "study"], "representatives": [{"id": 245746, "year": 2019, "doi": "10.1109/piers-spring46901.2019.9017315", "title": "Assessment of the Urban Three-dimensional Structural Influence on the Satellite Thermal Infrared Measurement"}, {"id": 558707, "year": 2011, "doi": "10.1016/j.rse.2011.01.004", "title": "Estimation of subpixel land surface temperature using an endmember index based technique: A case examination on ASTER and MODIS temperature products over a heterogeneous area"}, {"id": 55340, "year": 2024, "doi": "10.3390/atmos15050551", "title": "Assessing Satellite Data's Role in Substituting Ground Measurements for Urban Surfaces Characterization: A Step towards UHI Mitigation"}, {"id": 434206, "year": 2014, "doi": "10.1016/j.rse.2014.03.016", "title": "Validation of remotely sensed surface temperature over an oak woodland landscape - The problem of viewing and illumination geometries"}, {"id": 400019, "year": 2018, "doi": "10.3390/rs10050736", "title": "Modeling the Distributions of Brightness Temperatures of a Cropland Study Area Using a Model that Combines Fast Radiosity and Energy Budget Methods"}]}
-`;
+      const KEYWORDS_JSONL = `{"topic_id": 0, "size": 51281, "keywords": ["classification", "data", "image", "images", "method", "spectral", "based", "hyperspectral", "proposed", "spatial", "detection", "information", "model", "features", "feature"], "representatives": [{"id": 5572, "year": 2025, "doi": "10.3390/jimaging11060179", "title": "Optimizing Remote Sensing Image Retrieval Through a Hybrid Methodology"}, {"id": 164910, "year": 2022, "doi": "10.1007/s12065-020-00537-y", "title": "Simulation of urban pattern evolution trend based on satellite GIS and remote sensing"}, {"id": 444165, "year": 2017, "doi": "10.1117/1.JRS.11.026009", "title": "Assessing the performance of multiple spectral-spatial features of a hyperspectral image for classification of urban land cover classes using support vector machines and artificial neural network"}, {"id": 197962, "year": 2022, "doi": "10.1007/s12524-022-01563-2", "title": "A New Method for Object-Based Hyperspectral Image Classification"}, {"id": 583572, "year": 2010, "doi": "10.1117/12.864938", "title": "Supervised super resolution to improve the resolution of hyperspectral images classification maps"}]}
+{"topic_id": 1, "size": 45641, "keywords": ["water", "land", "data", "urban", "area", "study", "flood", "use", "river", "areas", "groundwater", "model", "cover", "spatial", "using"], "representatives": [{"id": 6349, "year": 2024, "doi": "10.1016/j.envres.2023.117962", "title": "Climate uncertainty and vulnerability of urban flooding associated with regional risk using multi-criteria analysis in Mumbai, India"}, {"id": 17705, "year": 2025, "doi": "10.1016/j.agwat.2024.109254", "title": "Surface water and flood-based agricultural systems: Mapping and modelling long-term variability in the Senegal river floodplain"}, {"id": 4841, "year": 2024, "doi": "10.1109/JSTARS.2024.3430505", "title": "Impact of Land Use/Land Cover Changes on Urban Flooding: A Case Study of the Greater Bay Area, China"}, {"id": 48163, "year": 2024, "doi": "10.1007/s00477-024-02686-3", "title": "Multi-scale extraction and spatial analysis of growth pattern changes in urban water bodies using sentinel-2 MSI imagery: a study in the central part of India"}, {"id": 365274, "year": 2013, "doi": "10.1007/s12517-011-0472-7", "title": "Evaluation of natural resource potential in semi-arid micro-watershed, eastern Rajasthan, using remote sensing and geographic information system"}]}
+{"topic_id": 2, "size": 36056, "keywords": ["data", "sea", "ocean", "water", "surface", "model", "wind", "satellite", "wave", "sst", "using", "chl", "results", "temperature", "high"], "representatives": [{"id": 171071, "year": 2020, "doi": "10.3390/rs12172774", "title": "Empirical Relationships between Remote-Sensing Reflectance and Selected Inherent Optical Properties in Nordic Sea Surface Waters for the MODIS and OLCI Ocean Colour Sensors"}, {"id": 369624, "year": 2017, "doi": "10.3390/rs9040343", "title": "A Novel Statistical Approach for Ocean Colour Estimation of Inherent Optical Properties and Cyanobacteria Abundance in Optically Complex Waters"}, {"id": 405274, "year": 2016, "doi": "10.1117/12.2225875", "title": "High-resolution shipboard measurements of phytoplankton - a way forward for enhancing the utility of satellite SST and Chlorophyll for mapping microscale features and frontal zones in coastal waters"}, {"id": 729764, "year": 2002, "doi": "10.1016/S0034-4257(01)00335-2", "title": "Algal biomass and sea surface temperature in the Mediterranean Basin - Intercomparison of data from various satellite sensors, and implications for primary production estimates"}, {"id": 564076, "year": 2011, "doi": "10.1016/j.seares.2010.08.002", "title": "Cloud filling of ocean colour and sea surface temperature remote sensing products over the Southern North Sea by the Data Interpolating Empirical Orthogonal Functions methodology"}]}
+{"topic_id": 3, "size": 34867, "keywords": ["satellite", "network", "performance", "communication", "proposed", "data", "channel", "based", "paper", "systems", "signal", "modulation", "scheme", "time", "networks"], "representatives": [{"id": 487440, "year": 2016, "doi": "10.1002/sat.1172", "title": "Energy-efficient link resource allocation in the multibeam satellite downlink under QoS constraints"}, {"id": 94813, "year": 2025, "doi": "10.1109/JSAC.2024.3460064", "title": "Massive MIMO-OTFS-Based Random Access for Cooperative LEO Satellite Constellations"}, {"id": 105122, "year": 2025, "doi": "10.1007/s11277-025-11856-7", "title": "DVB-RCS2 Satellite Link Optimization for Efficient Data Transmission Using Cascaded Coding Approach in MIMO-OFDM System"}, {"id": 113632, "year": 2024, "doi": "10.1109/ICCC62479.2024.10681896", "title": "Closed-Form Outage Probability Analysis For OTFS-Based Multi-Beam LEO Satellites"}, {"id": 114904, "year": 2025, "doi": "10.1109/AERO63441.2025.11068483", "title": "Enhancing Space Situational Awareness: Robust Millimeter-Wave Satellite Communication Solutions"}]}
+{"topic_id": 4, "size": 33267, "keywords": ["patients", "study", "based", "constellation", "data", "social", "satellite", "results", "disease", "analysis", "research", "syndrome", "clinical", "health", "risk"], "representatives": [{"id": 161350, "year": 2025, "doi": "10.1017/gmh.2025.16", "title": "Symptom networks of common mental disorders in public versus private healthcare settings in India"}, {"id": 350495, "year": 2021, "doi": "10.1186/s13195-021-00846-z", "title": "Brain connectivity and metacognition in persons with subjective cognitive decline (COSCODE): rationale and study design"}, {"id": 547915, "year": 2014, "doi": "10.1371/journal.pone.0110271", "title": "Social Determinants and the Classification of Disease: Descriptive Epidemiology of Selected Socially Mediated Disease Constellations"}, {"id": 219123, "year": 2020, "doi": "10.2196/22756", "title": "Informing the Development of a Digital Health Platform Through Universal Points of Care: Qualitative Survey Study"}, {"id": 159815, "year": 2025, "doi": "10.1136/bmjopen-2024-092612", "title": "Pathway Of Low Anterior Resection syndrome (LARS) relief after Surgery (POLARiS)<bold>:</bold> protocol for an international, open-label, multi-arm, phase 3 randomised superiority trial within a cohort, with economic evaluation, process evaluation and qualitative sub-study, to explore the natural history of LARS and compare transanal irrigation and sacral neuromodulation to optimised conservative management for people with major LARS following a high or low anterior resection for colorectal cancer"}]}
+{"topic_id": 5, "size": 32219, "keywords": ["cloud", "precipitation", "data", "rainfall", "model", "satellite", "clouds", "water", "based", "observations", "temperature", "using", "surface", "radar", "rain"], "representatives": [{"id": 906030, "year": 2003, "doi": "10.1175/1520-0493(2003)131<1240:MRACOO>2.0.CO;2", "title": "Model rain and clouds over oceans: Comparison with SSM/I observations"}, {"id": 716914, "year": 2001, "doi": "10.1029/2000JD900478", "title": "A method for assessing the quality of model-based estimates of ground temperature and atmospheric moisture using satellite data"}, {"id": 225668, "year": 2021, "doi": "10.1007/s00703-020-00765-y", "title": "Impacts of satellite data assimilation with different model vertical levels on QPFs downstream of the Tibetan Plateau"}, {"id": 590604, "year": 2011, "doi": "10.1175/2011JHM1257.1", "title": "Satellite and Numerical Model Investigation of Two Heavy Rain Events over the Central Mediterranean"}, {"id": 591882, "year": 2008, "doi": null, "title": "Combined IR-microwave satellite retrieval of temperature and moisture profiles using the ICI inversion system and its application in the MM5 model"}]}
+{"topic_id": 6, "size": 30437, "keywords": ["data", "lidar", "point", "method", "based", "3d", "road", "detection", "proposed", "using", "model", "information", "building", "algorithm", "accuracy"], "representatives": [{"id": 454071, "year": 2018, "doi": "10.33012/2018.15958", "title": "Modeling and Understanding LiDAR Data for Absolute and Relative Positioning"}, {"id": 48449, "year": 2023, "doi": "10.3788/AOS240817", "title": "Laser Simultaneous Localization and Mapping Algorithm Based on Optimized Ground Segmentation and Closed-Loop Detection"}, {"id": 75717, "year": 2023, "doi": "10.1109/ISCAS46773.2023.10181371", "title": "Aerial LiDAR-based 3D Object Detection and Tracking for Traffic Monitoring"}, {"id": 85223, "year": 2024, "doi": "10.3389/fphy.2024.1387717", "title": "Research on LiDAR point cloud data transformation method based on weighted altitude difference map"}, {"id": 84349, "year": 2024, "doi": "10.1109/ISSC61953.2024.10603182", "title": "3D LiDAR Data Augmentation for Off-Highway Vehicle Applications"}]}
+{"topic_id": 7, "size": 29998, "keywords": ["satellite", "space", "control", "based", "method", "design", "model", "orbit", "paper", "proposed", "time", "attitude", "satellites", "power", "systems"], "representatives": [{"id": 282837, "year": 2020, "doi": "10.1109/aero47225.2020.9172376", "title": "Using Fault Detection/Identification Software with Local Awareness Sensors to Improve Satellite Resiliency"}, {"id": 219994, "year": 2022, "doi": "10.1109/AERO53065.2022.9843283", "title": "Dynamics and Control of Helical Arrays in Low Earth Orbit"}, {"id": 789377, "year": 2002, "doi": null, "title": "Modeling and control - Flexible structure spacecraft"}, {"id": 778640, "year": 2003, "doi": null, "title": "Nonlinear dynamics of the small-mass gyromoment AOCS with plasma thrusters for communication satellites"}, {"id": 639765, "year": 2012, "doi": "10.1016/j.actaastro.2012.07.016", "title": "Control-oriented modelization of a satellite with large flexible appendages and use of worst-case analysis to verify robustness to model uncertainties of attitude control"}]}
+{"topic_id": 8, "size": 28629, "keywords": ["data", "crop", "model", "yield", "lai", "using", "spectral", "based", "vegetation", "hyperspectral", "used", "models", "study", "rice", "index"], "representatives": [{"id": 44391, "year": 2024, "doi": "10.3390/agriculture14071110", "title": "Unmanned Aerial Vehicle-Measured Multispectral Vegetation Indices for Predicting LAI, SPAD Chlorophyll, and Yield of Maize"}, {"id": 65079, "year": 2024, "doi": "10.1016/j.asr.2022.11.047", "title": "Retrieval of crop biophysical-biochemical variables from airborne AVIRIS-NG data using hybrid inversion of PROSAIL-D"}, {"id": 173934, "year": 2022, "doi": "10.1016/j.biosystemseng.2022.08.005", "title": "High-resolution multispectral imagery and LiDAR point cloud fusion for the discrimination and biophysical characterisation of vegetable crops at different levels of nitrogen"}, {"id": 18484, "year": 2024, "doi": "10.1016/j.compag.2024.108942", "title": "Estimation of wheat biophysical variables through UAV hyperspectral remote sensing using machine learning and radiative transfer models"}, {"id": 406996, "year": 2018, "doi": "10.3390/rs10071138", "title": "A Comparison of Crop Parameters Estimation Using Images from UAV-Mounted Snapshot Hyperspectral Sensor and High-Definition Digital Camera"}]}
+{"topic_id": 9, "size": 28288, "keywords": ["imaging", "spectral", "data", "hyperspectral", "optical", "image", "based", "method", "using", "images", "high", "infrared", "calibration", "multispectral", "resolution"], "representatives": [{"id": 707567, "year": 2000, "doi": "10.1364/AO.39.003143", "title": "Multipurpose spectral imager"}, {"id": 611395, "year": 2008, "doi": "10.5589/m07-069", "title": "Toward scene-based retrieval of spectral response functions for hyperspectral imagers using Fraunhofer features"}, {"id": 404138, "year": 2017, "doi": "10.3390/s17081857", "title": "Translational Imaging Spectroscopy for Proximal Sensing"}, {"id": 600093, "year": 2009, "doi": "10.1109/TIM.2009.2005557", "title": "Implementation of a 3-D Hyperspectral Instrument for Skin Imaging Applications"}, {"id": 397303, "year": 2014, "doi": "10.3390/rs61111082", "title": "Reduction of Uncorrelated Striping Noise-Applications for Hyperspectral Pushbroom Acquisitions"}]}
+{"topic_id": 10, "size": 23498, "keywords": ["gnss", "positioning", "navigation", "gps", "satellite", "time", "method", "accuracy", "based", "data", "signal", "frequency", "proposed", "using", "signals"], "representatives": [{"id": 100310, "year": 2025, "doi": "10.1088/1361-6501/ae035b", "title": "Performance analysis of geostationary orbit satellite autonomous orbit determination algorithm based on few Global Navigation Satellite System satellites"}, {"id": 460217, "year": 2017, "doi": null, "title": "Combined Algorithm for Satellite Selection for Open-sky and Constrained Environments"}, {"id": 152693, "year": 2025, "doi": "10.3390/electronics14050826", "title": "Robust Regression and Redundant Measurement Noise Estimation Adaptive Filtering for Localization in Urban Environments"}, {"id": 462694, "year": 2014, "doi": null, "title": "The Use of Multiple GNSS Constellations with Strict Quality Constraints for Achieving High Accuracy in Urban Environments"}, {"id": 112257, "year": 2024, "doi": "10.1109/ICEENG58856.2024.10566432", "title": "Evaluation of Code & Carrier based GNSS Positioning Techniques for Positioning Accuracy Using Low Cost GNSS Receivers"}]}
+{"topic_id": 11, "size": 23242, "keywords": ["sar", "radar", "imaging", "data", "method", "target", "algorithm", "proposed", "image", "based", "resolution", "aperture", "range", "paper", "high"], "representatives": [{"id": 199217, "year": 2021, "doi": null, "title": "SIMULATION OF AUTOMATIC TARGET RECOGNITION IN HIGH SPEED MANEUVERING ENVIRONMENT BASED ON SAR IMAGING"}, {"id": 234195, "year": 2020, "doi": "10.3390/rs12132077", "title": "A Fast Bistatic ISAR Imaging Approach for Rapidly Spinning Targets via Exploiting SAR Technique"}, {"id": 212415, "year": 2019, "doi": "10.3390/s19071649", "title": "A Data-Driven Approach to SAR Data-Focusing"}, {"id": 576990, "year": 2009, "doi": null, "title": "Non Stationary Bistatic Synthetic Aperture Radar Processing: Assessment of Frequency Domain Processing from Simulated and Real Signals"}, {"id": 422481, "year": 2017, "doi": null, "title": "Analysis of Synthetic Aperture Radar Image Enchancement Algorithm"}]}
+{"topic_id": 12, "size": 22480, "keywords": ["activity", "compounds", "sar", "inhibitors", "structure", "compound", "potent", "series", "mu", "derivatives", "binding", "receptor", "cell", "studies", "novel"], "representatives": [{"id": 296540, "year": 2022, "doi": "10.1016/j.molstruc.2022.133587", "title": "An efficient p-TSA catalyzed synthesis of some new substituted- (5-hydroxy-3-phenylisoxazol-4-yl)-1,3-dimethyl-1 H-chromeno[2,3-d] pyrimidine-2,4(3H,5H)-dione/3,3-dimethyl-2H-xanthen-1(9H)-one scaffolds and evaluation of their pharmacological and computational investigations"}, {"id": 643077, "year": 2010, "doi": "10.1021/jm901184n", "title": "Development of (S)-N6-(2-(4-(Isoquinolin-1-yl)piperazin-1-yl)ethyl)-N6-propyl-4,5,6, 7-tetrahydrobenzo[d]-thiazole-2,6-diamine and Its Analogue as a D3 Receptor Preferring Agonist: Potent in Vivo Activity in Parkinson's Disease Animal Models"}, {"id": 149584, "year": 2024, "doi": "10.3390/molecules29143387", "title": "Design, Synthesis, and Characterization of Novel Thiazolidine-2,4-Dione-Acridine Hybrids as Antitumor Agents"}, {"id": 629203, "year": 2010, "doi": "10.1016/j.bmcl.2010.07.009", "title": "Discovery of substituted benzyl tetrazoles as histamine H3 receptor antagonists"}, {"id": 481037, "year": 2017, "doi": "10.1016/j.ejmech.2017.01.044", "title": "Dregamine and tabernaemontanine derivatives as ABCB1 modulators on resistant cancer cells"}]}
+{"topic_id": 13, "size": 22292, "keywords": ["ray", "galaxies", "mass", "similar", "satellite", "data", "stars", "10", "galaxy", "star", "space", "high", "based", "energy", "stellar"], "representatives": [{"id": 343461, "year": 2022, "doi": "10.3847/1538-4357/ac9b19", "title": "Is the Core-cusp Problem a Matter of Perspective? Jeans Anisotropic Modeling against Numerical Simulations"}, {"id": 533915, "year": 2016, "doi": "10.3847/0004-637X/827/2/108", "title": "MEASUREMENTS OF EXTRAGALACTIC BACKGROUND LIGHT FROM THE FAR UV TO THE FAR IR FROM DEEP GROUND- AND SPACE-BASED GALAXY COUNTS"}, {"id": 898988, "year": 2002, "doi": "10.1086/344561", "title": "Mid-infrared identification of faint Submillimeter sources"}, {"id": 659407, "year": 2010, "doi": "10.1088/0004-637X/720/2/1772", "title": "ON THE MORPHOLOGY OF THE ELECTRON-POSITRON ANNIHILATION EMISSION AS SEEN BY SPI/INTEGRAL"}, {"id": 756533, "year": 1991, "doi": null, "title": "GALAXY COUNTS AND CONTRIBUTIONS TO THE BACKGROUND-RADIATION FROM 1 MU-M TO 1000 MU-M"}]}
+{"topic_id": 14, "size": 21905, "keywords": ["vegetation", "drought", "data", "water", "et", "ndvi", "land", "model", "climate", "soil", "index", "surface", "cover", "based", "using"], "representatives": [{"id": 13435, "year": 2024, "doi": "10.3390/rs16101735", "title": "Comparison between Satellite Derived Solar-Induced Chlorophyll Fluorescence, NDVI and kNDVI in Detecting Water Stress for Dense Vegetation across Southern China"}, {"id": 31756, "year": 2023, "doi": "10.1007/s10661-023-11195-9", "title": "Monitoring land cover changes and droughts using statistical analysis and multi-sensor remote sensing data"}, {"id": 41241, "year": 2024, "doi": "10.1016/j.agrformet.2023.109797", "title": "A comparison of moderate and high spatial resolution satellite data for modeling gross primary production and transpiration of native prairie, alfalfa, and winter wheat"}, {"id": 542445, "year": 2016, "doi": "10.1016/j.rse.2016.07.004", "title": "Assessing the role of climate and resource management on groundwater dependent ecosystem changes in arid environments with the Landsat archive"}, {"id": 436663, "year": 2018, "doi": "10.1002/hyp.11626", "title": "Prediction of vegetation anomalies over an inland river basin in north-western China"}]}
+{"topic_id": 15, "size": 20683, "keywords": ["aerosol", "dust", "pm2", "data", "aod", "model", "forest", "air", "cloud", "satellite", "fires", "based", "aerosols", "study", "using"], "representatives": [{"id": 417797, "year": 2016, "doi": "10.1016/j.atmosenv.2016.08.070", "title": "Evaluation of MODIS columnar aerosol retrievals using AERONET in semi-arid Nevada and California, USA, during the summer of 2012"}, {"id": 215798, "year": 2019, "doi": "10.1016/j.atmosenv.2019.01.045", "title": "High-resolution daily AOD estimated to full coverage using the random forest model approach in the Beijing-Tianjin-Hebei region"}, {"id": 217079, "year": 2019, "doi": "10.5194/acp-19-987-2019", "title": "The value of satellite observations in the analysis and short-range prediction of Asian dust"}, {"id": 417607, "year": 2014, "doi": "10.1016/j.jaerosci.2014.01.008", "title": "Optical exploration of biomass burning aerosols over a high-altitude station by combining ground-based and satellite data"}, {"id": 464670, "year": 2013, "doi": "10.1016/j.jastp.2012.11.004", "title": "Aerosol measurements at L'Aquila EARLINET station in central Italy: Impact of local sources and large scale transport resolved by LIDAR"}]}
+{"topic_id": 16, "size": 20468, "keywords": ["forest", "data", "tree", "height", "biomass", "model", "species", "using", "based", "lidar", "canopy", "vegetation", "agb", "study", "accuracy"], "representatives": [{"id": 375820, "year": 2014, "doi": "10.1109/JSTARS.2014.2304642", "title": "Forest Biomass and Carbon Stock Quantification Using Airborne LiDAR Data: A Case Study Over Huntington Wildlife Forest in the Adirondack Park"}, {"id": 592229, "year": 2009, "doi": "10.1016/j.rse.2009.05.009", "title": "Estimation of forest structural parameters using 5 and 10 meter SPOT-5 satellite data"}, {"id": 585720, "year": 2008, "doi": "10.1016/j.rse.2007.09.009", "title": "Integrating waveform lidar with hyperspectral imagery for inventory of a northern temperate forest"}, {"id": 420190, "year": 2018, "doi": "10.1016/j.jag.2017.11.017", "title": "Modelling forest canopy height by integrating airborne LiDAR samples with satellite Radar and multispectral imagery"}, {"id": 212541, "year": 2022, "doi": "10.3390/rs14184666", "title": "An Automatic Individual Tree 3D Change Detection Method for Allometric Parameters Estimation in Mixed Uneven-Aged Forest Stands from ALS Data"}]}
+{"topic_id": 17, "size": 19959, "keywords": ["lidar", "wind", "laser", "optical", "data", "aerosol", "high", "based", "method", "detection", "measurements", "range", "using", "signal", "atmospheric"], "representatives": [{"id": 582850, "year": 2007, "doi": "10.1117/12.738729", "title": "Sounding of the environment by means of the un-impulse of the low-power continuous source"}, {"id": 584829, "year": 2008, "doi": "10.1117/12.783370", "title": "Medium sensing by low-power strobe pulse"}, {"id": 214549, "year": 2021, "doi": "10.5194/amt-14-4593-2021", "title": "MicroPulse DIAL (MPD) - a diode-laser-based lidar architecture for quantitative atmospheric profiling"}, {"id": 608840, "year": 2010, "doi": "10.3952/lithjphys.50308", "title": "APPLICATION OF ATMOSPHERE SENSING BY INFRARED LIDARS FOR ENVIRONMENTAL PROTECTION AND INDUSTRY NEEDS"}, {"id": 83680, "year": 2025, "doi": "10.1364/OE.559085", "title": "Mie-Rayleigh-Raman-Doppler lidar system designed for multiple atmospheric parameter measurements in the troposphere and lower stratosphere at Haikou (19.9°N, 110.3°E)"}]}
+{"topic_id": 18, "size": 19468, "keywords": ["solar", "field", "magnetic", "data", "model", "ionospheric", "plasma", "electron", "satellite", "tec", "density", "time", "ionosphere", "observed", "observations"], "representatives": [{"id": 313706, "year": 2022, "doi": "10.3390/atmos13040518", "title": "Low-Latitude Ionospheric Responses and Coupling to the February 2014 Multiphase Geomagnetic Storm from GNSS, Magnetometers, and Space Weather Data"}, {"id": 415743, "year": 2017, "doi": "10.1016/j.asr.2016.11.031", "title": "Ionospheric electron density perturbations during the 7-10 March 2012 geomagnetic storm period"}, {"id": 843913, "year": 2002, "doi": "10.1029/2001JA900174", "title": "Testing global storm-time electric field models using particle spectra on multiple spacecraft - art. no. 1194"}, {"id": 898773, "year": 2005, "doi": "10.5194/angeo-23-1867-2005", "title": "A case study testing the cavity mode model of the magnetosphere"}, {"id": 269542, "year": 2022, "doi": "10.1029/2021JA030247", "title": "Interhemispheric Asymmetries in Ionospheric Electron Density Responses During Geomagnetic Storms: A Study Using Space-Based and Ground-Based GNSS and AMPERE Observations"}]}
+{"topic_id": 19, "size": 18110, "keywords": ["fault", "data", "earthquake", "slip", "area", "deformation", "surface", "study", "using", "volcanic", "seismic", "km", "satellite", "model", "results"], "representatives": [{"id": 258456, "year": 2021, "doi": "10.1016/j.jvolgeores.2021.107272", "title": "Combined SBAS-InSAR and geostatistics to detect topographic change and fluid paths in geothermal areas"}, {"id": 89863, "year": 2025, "doi": "10.3390/min15060657", "title": "Integrating Remote Sensing and Aeromagnetic Data for Enhanced Geological Mapping at Wadi Sibrit-Urf Abu Hamam District, Southern Part of Nubian Shield"}, {"id": 900045, "year": 1998, "doi": "10.1117/12.312662", "title": "Satellite remote sensing data applied for seismic risk assessment of Vrancea region"}, {"id": 371481, "year": 2016, "doi": "10.1190/INT-2015-0125.1", "title": "An estimation of regional geologic structures from the geomorphology to characterize the Wadi systems, southeast Sinai, Egypt"}, {"id": 202099, "year": 2021, "doi": "10.5194/nhess-21-2881-2021", "title": "UAV survey method to monitor and analyze geological hazards: the case study of the mud volcano of Villaggio Santa Barbara, Caltanissetta (Sicily)"}]}
+{"topic_id": 20, "size": 17597, "keywords": ["ice", "snow", "sea", "sea ice", "glacier", "data", "surface", "model", "cover", "glaciers", "arctic", "water", "area", "using", "satellite"], "representatives": [{"id": 541777, "year": 2016, "doi": "10.1080/07038992.2016.1166043", "title": "Variations of Annual Minimum Snow and Ice Extent over Canada and Neighboring Landmass Derived from MODIS 250-m Imagery for 2000-2014"}, {"id": 862204, "year": 1991, "doi": null, "title": "OPERATIONAL SATELLITES AND THE GLOBAL MONITORING OF SNOW AND ICE"}, {"id": 925637, "year": 2005, "doi": null, "title": "New results on the changing cryosphere from geostatistical interpolation and classification of first and second order spatial variables"}, {"id": 37910, "year": 2023, "doi": "10.5194/tc-17-4903-2023", "title": "Combined GNSS reflectometry-refractometry for automated and continuous in situ surface mass balance estimation on an Antarctic ice shelf"}, {"id": 251615, "year": 2022, "doi": "10.1016/j.rse.2022.113307", "title": "Uncertainty of ICESat-2 ATL06-and ATL08-derived snow depths for glacierized and vegetated mountain regions"}]}
+{"topic_id": 21, "size": 16898, "keywords": ["satellite", "data", "gravity", "earth", "surface", "model", "orbit", "lunar", "field", "space", "using", "based", "satellites", "results", "time"], "representatives": [{"id": 417583, "year": 2016, "doi": null, "title": "GRAVITY FIELD AND OCEAN TIDES MODELING FOR PRECISE ORBIT DETERMINATION OF DORIS SATELLITES"}, {"id": 632198, "year": 2007, "doi": "10.1016/j.asr.2007.04.040", "title": "The LAGEOS satellites orbital residuals determination and the way to extract gravitational and non-gravitational unmodeled perturbing effects"}, {"id": 347933, "year": 2022, "doi": "10.3390/rs14133030", "title": "Cold Atom Interferometry for Enhancing the Radio Science Gravity Experiment: A Phobos Case Study"}, {"id": 622032, "year": 2010, "doi": "10.2514/1.46223", "title": "Orbit Tuning of Planetary Orbiters for Accuracy Gain in Gravity-Field Mapping"}, {"id": 486816, "year": 2013, "doi": "10.1007/s10712-012-9200-4", "title": "The Use of Resonant Orbits in Satellite Geodesy: A Review"}]}
+{"topic_id": 22, "size": 16731, "keywords": ["ozone", "data", "emissions", "model", "no2", "measurements", "satellite", "km", "co2", "observations", "atmospheric", "emission", "based", "temperature", "air"], "representatives": [{"id": 416107, "year": 2013, "doi": "10.5194/acp-13-3619-2013", "title": "Assessment of the interannual variability and influence of the QBO and upwelling on tracer-tracer distributions of N2O and O3 in the tropical lower stratosphere"}, {"id": 414037, "year": 2015, "doi": "10.5194/amt-8-1021-2015", "title": "Atomic oxygen retrievals in the MLT region from SCIAMACHY nightglow limb measurements"}, {"id": 797729, "year": 2003, "doi": "10.1029/2001JD001390", "title": "Ozone, aerosol, potential vorticity, and trace gas trends observed at high-latitudes over North America from February to May 2000"}, {"id": 497177, "year": 2017, "doi": "10.5194/gmd-10-721-2017", "title": "The high-resolution version of TM5-MP for optimized satellite retrievals: description and validation"}, {"id": 647314, "year": 2010, "doi": "10.5194/acp-10-7723-2010", "title": "GOMOS O3, NO2, and NO3 observations in 2002-2008"}]}
+{"topic_id": 23, "size": 16658, "keywords": ["sensor", "satellite", "magnetic", "high", "temperature", "using", "based", "detection", "electron", "structure", "surface", "ray", "spectra", "nanoparticles", "energy"], "representatives": [{"id": 510558, "year": 2016, "doi": "10.1039/c5nr07363d", "title": "Novel photoswitchable dielectric properties on nanomaterials of electronic core-shell γ-FeOx@Au@fullerosomes for GHz frequency applications"}, {"id": 99687, "year": 2024, "doi": "10.1021/acs.langmuir.4c03228", "title": "Chitosan-Functionalized Lithium Iron Oxide Nanoparticles for Magnetic Hyperthermia Applications"}, {"id": 474873, "year": 2017, "doi": "10.1016/j.jmr.2017.06.002", "title": "Quadrupolar nutation NMR to discriminate central and satellite transitions: Spectral assignments for a Ziegler-Natta catalyst"}, {"id": 823335, "year": 2006, "doi": "10.1073/pnas.0606216103", "title": "Quantitative multispectral biosensing and 1D imaging using quasi-3D plasmonic crystals"}, {"id": 587509, "year": 2010, "doi": "10.1109/JSEN.2009.2038451", "title": "Enhanced Spectral Sensing by Electromagnetic Coupling With Localized Surface Plasmons on Subwavelength Structures"}]}
+{"topic_id": 24, "size": 15194, "keywords": ["data", "remote", "sensing", "remote sensing", "information", "based", "geospatial", "satellite", "earth", "spatial", "image", "paper", "research", "processing", "images"], "representatives": [{"id": 927946, "year": 2005, "doi": "10.1016/j.isprsjprs.2005.02.002", "title": "Satellite remote sensing of earthquake, volcano, flood, landslide and coastal inundation hazards"}, {"id": 919553, "year": 2004, "doi": "10.1109/ITCC.2004.1286590", "title": "A problem solving environment for remote sensing data processing"}, {"id": 367042, "year": 2016, "doi": "10.1117/12.2243059", "title": "Environmental monitoring in peat bog areas by change detection methods"}, {"id": 939373, "year": 2002, "doi": null, "title": "Virtual remote sensing: A holistic modeling approach"}, {"id": 387492, "year": 2018, "doi": "10.1080/17538947.2017.1326984", "title": "Ad-hoc combination and analysis of heterogeneous and distributed spatial data for environmental monitoring - design and prototype of a web-based solution"}]}
+{"topic_id": 25, "size": 13831, "keywords": ["landslide", "data", "deformation", "subsidence", "insar", "landslides", "sar", "method", "area", "phase", "monitoring", "using", "study", "results", "based"], "representatives": [{"id": 249001, "year": 2021, "doi": "10.1016/j.rse.2021.112400", "title": "InSAR monitoring of creeping landslides in mountainous regions: A case study in Eldorado National Forest, California"}, {"id": 443626, "year": 2018, "doi": "10.1016/j.enggeo.2018.04.015", "title": "Detection and displacement characterization of landslides using multi- temporal satellite SAR interferometry: A case study of Danba County in the Dadu River Basin"}, {"id": 42497, "year": 2023, "doi": "10.4408/IJEGE.2023-01.S-11", "title": "ASSESSMENT OF MT-INSAR PROCESSING TECHNIQUES FOR SLOW-MOVING LANDSLIDES MONITORING IN CUENCA (ECUADOR) THROUGH DOUBLE-BAND SAR SATELLITE"}, {"id": 252922, "year": 2022, "doi": "10.3390/rs14071759", "title": "InSAR Study of Landslides: Early Detection, Three-Dimensional, and Long-Term Surface Displacement Estimation-A Case of Xiaojiang River Basin, China"}, {"id": 70390, "year": 2024, "doi": "10.3390/app14041632", "title": "Landslide Detection Based on Multi-Direction Phase Gradient Stacking, with Application to Zhouqu, China"}]}
+{"topic_id": 26, "size": 13205, "keywords": ["dna", "chromosome", "satellite", "chromosomes", "species", "rna", "sequences", "sequence", "genome", "virus", "gene", "cells", "plants", "satellite dna", "centromere"], "representatives": [{"id": 633371, "year": 2010, "doi": "10.1134/S1022795410090176", "title": "Mouse Centromeric Tandem Repeats in silico and in situ"}, {"id": 496497, "year": 2017, "doi": "10.1186/s12863-017-0548-9", "title": "The satellite DNA AflaSAT-1 in the A and B chromosomes of the grasshopper Abracris flavolineata"}, {"id": 756246, "year": 1996, "doi": "10.1007/BF00019545", "title": "High-resolution mapping of repetitive DNA by in situ hybridization: Molecular and chromosomal features of prominent dispersed and discretely localized DNA families from the wild beet species Beta procumbens"}, {"id": 756157, "year": 1991, "doi": "10.1080/07060669109500951", "title": "MAPPING FUNCTIONAL DOMAINS IN CUCUMBER MOSAIC-VIRUS AND ITS SATELLITE RNAS"}, {"id": 796174, "year": 1992, "doi": "10.1007/BF00346015", "title": "CHARACTERIZATION AND CHROMOSOMAL DISTRIBUTION OF A TANDEMLY REPEATED DNA-SEQUENCE FROM THE AUSTRALIAN SHEEP BLOWFLY, LUCILIA-CUPRINA"}]}
+{"topic_id": 27, "size": 13126, "keywords": ["muscle", "cells", "cell", "satellite", "skeletal", "skeletal muscle", "expression", "satellite cells", "regeneration", "differentiation", "stem", "myogenic", "muscles", "mice", "growth"], "representatives": [{"id": 466763, "year": 2017, "doi": "10.1113/JP273997", "title": "Human skeletal muscle fibroblasts stimulate in vitro myogenesis and in vivo muscle regeneration"}, {"id": 457261, "year": 2013, "doi": "10.1016/j.bbrc.2013.09.085", "title": "Satellite cells isolated from aged or dystrophic muscle exhibit a reduced capacity to promote angiogenesis in vitro"}, {"id": 479531, "year": 2013, "doi": "10.1007/s13539-012-0097-z", "title": "Large-scale isolation of human skeletal muscle satellite cells from post-mortem tissue and development of quantitative assays to evaluate modulators of myogenesis"}, {"id": 280046, "year": 2020, "doi": "10.1002/jcsm.12584", "title": "Age-related decline of interferon-gamma responses in macrophage impairs satellite cell proliferation and regeneration"}, {"id": 468912, "year": 2016, "doi": "10.1002/jcsm.12092", "title": "Stromal derived factor-1 and granulocyte-colony stimulating factor treatment improves regeneration of Pax7-/- mice skeletal muscles"}]}
+{"topic_id": 28, "size": 12156, "keywords": ["antenna", "ghz", "band", "proposed", "array", "design", "satellite", "frequency", "db", "gain", "bandwidth", "power", "antennas", "high", "low"], "representatives": [{"id": 118213, "year": 2024, "doi": "10.1186/s13638-024-02369-1", "title": "Highly compact UWB-MIMO antenna with sharp multi-stop band characteristics"}, {"id": 76210, "year": 2025, "doi": "10.1007/s11276-025-03895-6", "title": "Experimental analysis of four-port MIMO multi-band bandwidths antenna within two wide-bands (6.88-21.23 GHz & 27.95-44.66 GHz) with high isolation for future wearable applications"}, {"id": 134735, "year": 2024, "doi": "10.1109/GSMM61775.2024.10553185", "title": "A 17.7-21.2 GHz Antenna Element for SATCOM Phased-Array Receiver"}, {"id": 327809, "year": 2022, "doi": "10.1002/mmce.23267", "title": "RPM-loaded compact dual-band circularly polarized antenna for GNSS application"}, {"id": 147877, "year": 2025, "doi": "10.3390/mi16101183", "title": "A Low-Cost Dual-Frequency Dual-Polarized Antenna Array with High Gain"}]}
+{"topic_id": 29, "size": 11645, "keywords": ["coastal", "mangrove", "data", "shoreline", "study", "water", "using", "area", "sea", "changes", "areas", "model", "erosion", "high", "satellite"], "representatives": [{"id": 6062, "year": 2025, "doi": "10.1038/s41598-025-91306-3", "title": "Analyzing coastal dynamics by means of multi-sensor satellite imagery at the East Frisian Island of Langeoog, Germany"}, {"id": 240696, "year": 2019, "doi": "10.3390/jmse7120459", "title": "Automatic Shoreline Detection from Eight-Band VHR Satellite Imagery"}, {"id": 30828, "year": 2023, "doi": "10.1016/j.jag.2023.103260", "title": "Monitoring multidecadal coastline change and reconstructing tidal flat topography"}, {"id": 7128, "year": 2025, "doi": "10.3390/rs17081437", "title": "A Holistic High-Resolution Remote Sensing Approach for Mapping Coastal Geomorphology and Marine Habitats"}, {"id": 184073, "year": 2020, "doi": "10.1016/j.ocecoaman.2020.105205", "title": "High-resolution optical remote sensing for coastal benthic habitat mapping: A case study of the Suape Estuarine-Bay, Pernambuco, Brazil"}]}
+{"topic_id": 30, "size": 11178, "keywords": ["species", "habitat", "data", "areas", "breeding", "foraging", "sea", "satellite", "study", "population", "used", "area", "using", "use", "turtles"], "representatives": [{"id": 583316, "year": 2009, "doi": "10.3354/meps08203", "title": "Quantifying habitat use and preferences of pelagic seabirds using individual movement data: a review"}, {"id": 498036, "year": 2016, "doi": "10.1016/j.ecolind.2016.05.049", "title": "Foraging distribution overlap and marine reserve usage amongst sub-Antarctic predators inferred from a multi-species satellite tagging experiment"}, {"id": 641383, "year": 2007, "doi": "10.1111/j.1365-2656.2006.01186.x", "title": "At-sea distribution and scale-dependent foraging behaviour of petrels and albatrosses: a comparative study"}, {"id": 572151, "year": 2012, "doi": "10.1371/journal.pone.0047551", "title": "Adapting to a Changing World: Unraveling the Role of Man-Made Habitats as Alternative Feeding Areas for Slender-Billed Gull (Chroicocephalus genei)"}, {"id": 501911, "year": 2017, "doi": "10.1371/journal.pone.0187889", "title": "Hooded seal Cystophora cristata foraging areas in the Northeast Atlantic Ocean-Investigated using three complementary methods"}]}
+{"topic_id": 31, "size": 10939, "keywords": ["detection", "sar", "ship", "target", "images", "feature", "object", "method", "proposed", "data", "based", "image", "network", "model", "features"], "representatives": [{"id": 177072, "year": 2021, "doi": "10.3390/rs13071327", "title": "Image Enhancement Driven by Object Characteristics and Dense Feature Reuse Network for Ship Target Detection in Remote Sensing Imagery"}, {"id": 234519, "year": 2020, "doi": "10.1117/1.JRS.14.044522", "title": "Two-stage ship detection in synthetic aperture radar images based on attention mechanism and extended pooling"}, {"id": 235210, "year": 2019, "doi": "10.3390/rs11222694", "title": "Enhanced Feature Extraction for Ship Detection from Multi-Resolution and Multi-Scene Synthetic Aperture Radar (SAR) Images"}, {"id": 61014, "year": 2023, "doi": "10.3390/jmse11050906", "title": "An Effective Multi-Layer Attention Network for SAR Ship Detection"}, {"id": 235734, "year": 2022, "doi": "10.1109/LGRS.2022.3192559", "title": "Multifeature Transformation and Fusion-Based Ship Detection With Small Targets and Complex Backgrounds"}]}
+{"topic_id": 32, "size": 8603, "keywords": ["soil", "moisture", "soil moisture", "data", "surface", "model", "sm", "vegetation", "gnss", "using", "satellite", "water", "based", "land", "band"], "representatives": [{"id": 490832, "year": 2017, "doi": "10.1016/j.rse.2017.05.004", "title": "Inverting surface soil moisture information from satellite altimetry over arid and semi-arid regions"}, {"id": 630090, "year": 2012, "doi": "10.1109/TGRS.2011.2168533", "title": "Validation of Soil Moisture and Ocean Salinity (SMOS) Soil Moisture Over Watershed Networks in the U.S."}, {"id": 217882, "year": 2021, "doi": "10.3390/rs13244968", "title": "Improvement of the Soil Moisture Retrieval Procedure Based on the Integration of UAV Photogrammetry and Satellite Remote Sensing Information"}, {"id": 750763, "year": 2006, "doi": "10.1080/01431160600754609", "title": "Temporal and spatial soil moisture change pattern detection in an agricultural area using multi-temporal Radarsat ScanSAR data"}, {"id": 31931, "year": 2023, "doi": "10.1016/j.still.2023.105646", "title": "Surface soil moisture estimation from multi-frequency SAR images using ANN and experimental data on a semi-arid environment region in Konya, Turkey"}]}
+{"topic_id": 33, "size": 7385, "keywords": ["lst", "urban", "temperature", "surface", "land", "data", "heat", "thermal", "emissivity", "study", "uhi", "areas", "spatial", "degrees", "surface temperature"], "representatives": [{"id": 57028, "year": 2023, "doi": "10.1016/j.uclim.2023.101685", "title": "Satellite image analysis of thermal comfort for a sustainable urban ecology of Winneba, Ghana"}, {"id": 47422, "year": 2025, "doi": "10.1007/s10661-025-14392-w", "title": "Spatio-temporal study of urban dynamics with implications on land surface temperature of Gurugram City, India"}, {"id": 26474, "year": 2024, "doi": "10.3390/rs16091637", "title": "Temporal Variations in Land Surface Temperature within an Urban Ecosystem: A Comprehensive Assessment of Land Use and Land Cover Change in Kharkiv, Ukraine"}, {"id": 375991, "year": 2017, "doi": "10.1016/j.scs.2017.03.013", "title": "Impacts of urban surface characteristics on spatiotemporal pattern of land surface temperature in Kunming of China"}, {"id": 72521, "year": 2025, "doi": "10.1016/j.scs.2025.106454", "title": "Influence of environmental factors on land surface temperature and surface urban heat island. A cross-country analysis in Romania"}]}
+{"topic_id": 34, "size": 6641, "keywords": ["image", "images", "registration", "matching", "method", "data", "sar", "accuracy", "feature", "based", "satellite", "dem", "model", "proposed", "points"], "representatives": [{"id": 453932, "year": 2016, "doi": null, "title": "Registration of Very High Resolution SAR and Optical Images"}, {"id": 600326, "year": 2012, "doi": "10.14358/PERS.78.6.583", "title": "Registration of Multisource Satellite Images by Thin-plate Splines with Highly Reliable Conjugate Points"}, {"id": 468142, "year": 2017, "doi": "10.5194/isprs-archives-XLII-1-W1-579-2017", "title": "RELATIVE ORIENTATION AND MODIFIED PIECEWISE EPIPOLAR RESAMPLING FOR HIGH RESOLUTION SATELLITE IMAGES"}, {"id": 574735, "year": 2012, "doi": null, "title": "CO-REGISTRATION BETWEEN MULTISOURCE REMOTE-SENSING IMAGES"}, {"id": 476666, "year": 2018, "doi": "10.3390/ijgi7070251", "title": "Optical Satellite Image Geo-Positioning withWeak Convergence Geometry"}]}
+{"topic_id": 35, "size": 6304, "keywords": ["sar", "exposure", "field", "antenna", "rf", "human", "body", "temperature", "model", "head", "power", "electromagnetic", "using", "absorption", "method"], "representatives": [{"id": 608876, "year": 2009, "doi": null, "title": "Methodological Issues on the Estimation of the MRI-Induced SAR in Tissues in Contact with Implanted Thin Metallic Structures"}, {"id": 618777, "year": 2012, "doi": null, "title": "Analysis of Heat Transfer and Specific Absorption Rate of Electromagnetic Field in Human Body at 915 MHz and 2.45 GHz with 3D Finite Element Method"}, {"id": 756076, "year": 1999, "doi": "10.1109/10.775400", "title": "Heating of tissue by near-field exposure to a dipole: A model analysis"}, {"id": 612151, "year": 2007, "doi": "10.1093/rpd/ncm377", "title": "SAR distribution in human beings when using body-worn RF transmitters"}, {"id": 758732, "year": 1999, "doi": "10.1002/(SICI)1522-2594(199904)41:4<816::AID-MRM22>3.0.CO;2-5", "title": "Specific absorption rates and induced current densities for an anatomy-based model of the human for exposure to time-varying magnetic fields of MRI"}]}
+{"topic_id": 36, "size": 6202, "keywords": ["soil", "salinity", "data", "soc", "water", "model", "spectral", "sar", "soils", "using", "content", "study", "models", "soil salinity", "used"], "representatives": [{"id": 216061, "year": 2019, "doi": "10.1155/2019/2402749", "title": "Estimating Salt Concentrations Based on Optimized Spectral Indices in Soils with Regional Heterogeneity"}, {"id": 20581, "year": 2023, "doi": "10.3390/agriculture13050976", "title": "Random Forest Modeling of Soil Properties in Saline Semi-Arid Areas"}, {"id": 175411, "year": 2021, "doi": "10.1007/s11053-021-09925-2", "title": "Remote Sensing Inversion for Simulation of Soil Salinization Based on Hyperspectral Data and Ground Analysis in Yinchuan, China"}, {"id": 369388, "year": 2016, "doi": "10.3964/j.issn.1000-0593(2016)05-1615-08", "title": "Hyperspectral Models and Forcasting of Physico-Chemical Properties for Salinized Soils in Northwest China"}, {"id": 78890, "year": 2023, "doi": "10.1016/j.marpolbul.2022.114555", "title": "Remote sensing and statistical analyses for exploration and prediction of soil salinity in a vulnerable area to seawater intrusion"}]}
+{"topic_id": 37, "size": 5392, "keywords": ["archaeological", "data", "sites", "using", "study", "heritage", "analysis", "used", "results", "site", "lidar", "research", "cultural", "based", "remote"], "representatives": [{"id": 362918, "year": 2014, "doi": "10.1016/j.jas.2014.08.010", "title": "High resolution space and ground-based remote sensing and implications for landscape archaeology: the case from Portus, Italy"}, {"id": 576006, "year": 2010, "doi": "10.1016/j.actaastro.2009.10.028", "title": "Automatic archaeological feature extraction from satellite VHR images"}, {"id": 166873, "year": 2019, "doi": "10.3390/rs11070869", "title": "Beyond Site Detection: The Role of Satellite Remote Sensing in Analysing Archaeological Problems. A Case Study in Lithic Resource Procurement in the Atacama Desert, Northern Chile"}, {"id": 439306, "year": 2017, "doi": "10.1016/j.jas.2017.03.007", "title": "Contextualising archaeological models with geological, airborne and terrestrial LiDAR data: The Ice Age landscape in Farndon Fields, Nottinghamshire, UK"}, {"id": 581457, "year": 2009, "doi": "10.1002/arp.356", "title": "A Multiscale Approach for Reconstructing Archaeological Landscapes: Applications in Northern Apulia (Italy)"}]}
+{"topic_id": 38, "size": 5271, "keywords": ["adc", "sar", "power", "proposed", "sensor", "digital", "energy", "bit", "sar adc", "db", "analog", "noise", "low", "voltage", "high"], "representatives": [{"id": 85546, "year": 2023, "doi": "10.1016/j.mejo.2023.105991", "title": "A 14-bit 1-MS/s SAR ADC with a segmented capacitor array and background mismatch calibration for IoT sensing applications"}, {"id": 447241, "year": 2018, "doi": "10.1109/TVLSI.2018.2846746", "title": "A 0.9-V 12-bit 100-MS/s 14.6-fJ/Conversion-Step SAR ADC in 40-nm CMOS"}, {"id": 261551, "year": 2022, "doi": "10.1109/JSEN.2022.3195632", "title": "A 0.6-V 94-nW 10-Bit 200-kS/s Single-Ended SAR ADC for Implantable Biosensor Applications"}, {"id": 459004, "year": 2016, "doi": "10.1007/s10470-016-0837-7", "title": "A 70.7-dB SNDR 100-kS/s 14-b SAR ADC with attenuation capacitance calibration in 0.35-μm CMOS"}, {"id": 80523, "year": 2024, "doi": "10.1109/ISCAS58744.2024.10558052", "title": "A 10-bit 100 kS/s SAR ADC With a Monotonic Capacitor Switching Procedure for Single-Ended Inputs in 22 nm CMOS FDSOI"}]}
+{"topic_id": 39, "size": 4057, "keywords": ["solar", "data", "pv", "radiation", "power", "energy", "model", "satellite", "based", "irradiance", "surface", "solar radiation", "method", "using", "cloud"], "representatives": [{"id": 419451, "year": 2017, "doi": "10.1016/j.solener.2017.10.026", "title": "Generation of spatially dispersed irradiance time-series based on real cloud patterns"}, {"id": 415543, "year": 2018, "doi": "10.1016/j.solener.2017.11.049", "title": "Short-term solar irradiance forecasting via satellite/model coupling"}, {"id": 12176, "year": 2024, "doi": "10.1109/TGRS.2024.3392337", "title": "Solar PV Generation Prediction Based on Multisource Data Using ROI and Surrounding Area"}, {"id": 51066, "year": 2025, "doi": "10.3390/rs17010065", "title": "Improved Surface Solar Irradiation Estimation Using Satellite Data and Feature Engineering"}, {"id": 623474, "year": 2010, "doi": "10.1016/j.renene.2010.05.011", "title": "Solar resources estimation combining digital terrain models and satellite images techniques"}]}
+{"topic_id": 40, "size": 3943, "keywords": ["image", "fusion", "images", "resolution", "spatial", "spectral", "data", "pan", "method", "high", "information", "ms", "proposed", "based", "image fusion"], "representatives": [{"id": 33524, "year": 2023, "doi": "10.1109/JSTARS.2023.3298995", "title": "MPEFNet: Multilevel Progressive Enhancement Fusion Network for Pansharpening"}, {"id": 3951, "year": 2023, "doi": "10.3233/JIFS-213573", "title": "RETRACTED: Performance evaluation of image fusion techniques and implementation of new fusion technique for remote sensing satellite data (Retracted Article)"}, {"id": 406734, "year": 2018, "doi": "10.1016/j.isprsjprs.2018.10.009", "title": "Sparsity inspired pan-sharpening technique using multi-scale learned dictionary"}, {"id": 365759, "year": 2016, "doi": "10.5194/isprsarchives-XLI-B7-653-2016", "title": "REMOTE SENSING IMAGE FUSION USING ICA AND OPTIMIZED WAVELET TRANSFORM"}, {"id": 167342, "year": 2023, "doi": "10.1016/j.inffus.2022.09.004", "title": "Multi-band remote sensing image fusion based on collaborative representation"}]}
+{"topic_id": 41, "size": 3468, "keywords": ["oil", "spill", "oil spill", "data", "detection", "sar", "sea", "waste", "spills", "images", "surface", "oil spills", "model", "using", "marine"], "representatives": [{"id": 169307, "year": 2019, "doi": "10.1360/N972019-00094", "title": "Optical remote identification of spilled oils from the SANCHI oil tanker collision in the East China Sea"}, {"id": 405380, "year": 2016, "doi": "10.5194/isprsarchives-XLI-B8-1183-2016", "title": "Large oil spill classification using SAR images based on spatial histogram"}, {"id": 261658, "year": 2021, "doi": "10.3390/rs13051020", "title": "Hydrocarbon Pollution Detection and Mapping Based on the Combination of Various Hyperspectral Imaging Processing Tools"}, {"id": 377144, "year": 2018, "doi": "10.1007/s12524-017-0728-0", "title": "Automated Approach for Extraction of Oil Spill from SAR Imagery"}, {"id": 1578, "year": 2024, "doi": "10.1080/00032719.2024.2309330", "title": "Online Oil Spill Monitoring Based upon a Shore-Based Hyperspectral Imaging (HIS) System"}]}
+{"topic_id": 42, "size": 3166, "keywords": ["malaria", "data", "strains", "risk", "disease", "environmental", "human", "spatial", "model", "study", "areas", "rva", "virus", "using", "transmission"], "representatives": [{"id": 382996, "year": 2013, "doi": "10.1186/1476-072X-12-10", "title": "Identifying landscape features associated with Rift Valley fever virus transmission, Ferlo region, Senegal, using very high spatial resolution satellite imagery"}, {"id": 920086, "year": 2006, "doi": null, "title": "Modelling patterns of mosquito density based on remote sensing images"}, {"id": 47913, "year": 2025, "doi": "10.1186/s12936-025-05353-2", "title": "Spatial and temporal variation of malaria incidence in children under 10 years in a pyrethroid-resistant vector area in southern Benin"}, {"id": 563017, "year": 2009, "doi": "10.3402/gha.v2i0.2053", "title": "Climate impacts on environmental risks evaluated from space: a conceptual approach to the case of Rift Valley Fever in Senegal"}, {"id": 436693, "year": 2015, "doi": "10.1186/s13071-015-0679-7", "title": "Bayesian variable selection in modelling geographical heterogeneity in malaria transmission from sparse data: an application to Nouna Health and Demographic Surveillance System (HDSS) data, Burkina Faso"}]}
+{"topic_id": 43, "size": 2871, "keywords": ["compression", "image", "data", "images", "hyperspectral", "spectral", "algorithm", "proposed", "method", "sensing", "based", "coding", "remote", "reconstruction", "remote sensing"], "representatives": [{"id": 930149, "year": 1996, "doi": "10.1109/36.485116", "title": "Multispectral data compression using bidirectional interband prediction"}, {"id": 257386, "year": 2019, "doi": "10.1109/TGRS.2019.2927434", "title": "High-Throughput Onboard Hyperspectral Image Compression With Ground-Based CNN Reconstruction"}, {"id": 449075, "year": 2013, "doi": "10.1117/12.2038158", "title": "An optimized hybrid encode based compression algorithm for Hyperspectral image"}, {"id": 390329, "year": 2014, "doi": null, "title": "Lossless Hyperspectral Image Compression Using Intraband and Interband Predictors"}, {"id": 386277, "year": 2015, "doi": null, "title": "Low Complexity Distributed Approach to Hyperspectral Image Compression"}]}
+{"topic_id": 44, "size": 867, "keywords": ["quantum", "qkd", "satellite", "key", "communication", "space", "based", "ground", "distribution", "optical", "network", "channel", "quantum communication", "photon", "key distribution"], "representatives": [{"id": 267136, "year": 2022, "doi": "10.1038/s41534-022-00525-3", "title": "Finite key effects in satellite quantum key distribution"}, {"id": 279994, "year": 2022, "doi": "10.1109/ICSOS53063.2022.9749733", "title": "Link technology for all-optical satellite-based quantum key distribution system in C-/L-band"}, {"id": 286918, "year": 2022, "doi": "10.1103/PhysRevApplied.18.044027", "title": "Hyperentangled Time-Bin and Polarization Quantum Key Distribution"}, {"id": 306674, "year": 2019, "doi": "10.1117/12.2524767", "title": "Channel analysis of free-space quantum key distribution with untrusted node"}, {"id": 96523, "year": 2025, "doi": "10.1109/OJCOMS.2025.3614698", "title": "Satellite Quantum Key Distribution: Analysis, Modeling, Performance Evaluation, and Validation"}]}
+{"topic_id": 45, "size": 670, "keywords": ["shadow", "image", "haze", "images", "dehazing", "method", "remote", "remote sensing", "sensing", "detection", "proposed", "shadows", "information", "based", "model"], "representatives": [{"id": 170915, "year": 2019, "doi": "10.1155/2019/4131378", "title": "Single Remote Sensing Multispectral Image Dehazing Based on a Learning Framework"}, {"id": 19, "year": 2023, "doi": "10.3390/rs15194680", "title": "Remote Sensing Image Haze Removal Based on Superpixel"}, {"id": 12227, "year": 2024, "doi": "10.1109/TGRS.2024.3379744", "title": "A Remote Sensing Image Dehazing Method Based on Heterogeneous Priors"}, {"id": 166118, "year": 2022, "doi": "10.1109/TGRS.2021.3135975", "title": "Haze Removal for a Single Remote Sensing Image Using Low-Rank and Sparse Prior"}, {"id": 165090, "year": 2021, "doi": "10.3390/rs13132432", "title": "Atmospheric Light Estimation Based Remote Sensing Image Dehazing"}]}
+{"topic_id": 46, "size": 123, "keywords": ["contrail", "contrails", "cirrus", "ice", "radiative", "satellite", "aircraft", "coverage", "contrail cirrus", "model", "optical", "forcing", "data", "climate", "lidar"], "representatives": [{"id": 781567, "year": 2000, "doi": "10.1175/1520-0450(2000)039<1434:ASBCDO>2.0.CO;2", "title": "A satellite-based climatic description of jet aircraft contrails and associations with atmospheric conditions, 1977-79"}, {"id": 748229, "year": 2006, "doi": "10.1175/JAM2325.1", "title": "Contrails to cirrus - Morphology, microphysics, and radiative properties"}, {"id": 566409, "year": 2012, "doi": "10.5194/acp-12-8157-2012", "title": "A methodology for in-situ and remote sensing of microphysical and radiative properties of contrails as they evolve into cirrus"}, {"id": 52517, "year": 2025, "doi": "10.5194/amt-18-1115-2025", "title": "Factors limiting contrail detection in satellite imagery"}, {"id": 32778, "year": 2023, "doi": "10.1007/s00704-023-04357-9", "title": "Contrail detection on SEVIRI images and 1-year study of their physical properties and the atmospheric conditions favoring their formation over Europe"}]}
+{"topic_id": 47, "size": 86, "keywords": ["mixing", "micromixer", "sar", "flow", "efficiency", "mixer", "performance", "micromixers", "channel", "mixing efficiency", "reynolds", "drop", "pressure", "split", "mixing performance"], "representatives": [{"id": 607626, "year": 2011, "doi": "10.1049/mnl.2011.0091", "title": "New 3D SAR micromixer based on 2D standard photolithographic technique"}, {"id": 766913, "year": 2005, "doi": null, "title": "Microfabrication of the split and recombination micromixer and the effect of its cross-sectional rotation"}, {"id": 611470, "year": 2012, "doi": "10.1016/j.ces.2012.03.036", "title": "Experimental comparative mixing performance of passive micromixers with H-shaped sub-channels"}, {"id": 274007, "year": 2022, "doi": "10.1088/1361-6439/ac7771", "title": "Performance evaluation of a 3D split-and-recombination micromixer with asymmetric structures"}, {"id": 267232, "year": 2023, "doi": "10.1080/01457632.2022.2140637", "title": "Numerical Simulation of Mixing Characteristics in a Split-and-Recombine Microchannel"}]}
+{"topic_id": 48, "size": 63, "keywords": ["data", "ozone", "quarter", "observations", "observatory", "monitoring", "operational", "functioning", "results", "cao", "surface", "operation", "based", "central", "basic"], "representatives": [{"id": 319107, "year": 2021, "doi": "10.3103/S1068373921060091", "title": "Ozone Content over the Russian Federation in the First Quarter of 2021"}, {"id": 518541, "year": 2014, "doi": "10.3103/S1068373914020101", "title": "Ozone content over the Russian Federation in 2013"}, {"id": 522961, "year": 2014, "doi": "10.3103/S1068373914110089", "title": "Ozone content over the Russian Federation in the third quarter of 2014"}, {"id": 322193, "year": 2019, "doi": "10.3103/S1068373919020092", "title": "Ozone Content over the Russian Federation in 2018"}, {"id": 520809, "year": 2014, "doi": "10.3103/S1068373914050094", "title": "Ozone content over the Russian federation in the first quarter of 2014"}]}`;
 
       const SIMILARITY_CSV = `topic_a,topic_b,similarity
-0,21,0.9253022074699402
-0,33,0.8785455226898193
-0,10,0.8574687242507935
-0,19,0.818449854850769
-0,11,0.8178533911705017
-0,41,0.8047038316726685
-0,12,0.796820342540741
-0,8,0.7754999399185181
-0,1,0.7519611120223999
-0,24,0.7474970817565918
-1,2,0.8865021467208862
-1,12,0.8740954995155334
-1,22,0.8571639657020569
-1,31,0.8533276319503784
-1,24,0.8431916236877441
-1,20,0.8321366310119629
-1,37,0.7885591983795166
-1,9,0.7858342528343201
-1,23,0.7829433679580688
-1,3,0.7827215194702148
-2,20,0.8757752180099487
-2,23,0.850419282913208
-2,22,0.8350144028663635
-2,3,0.8250402212142944
-2,19,0.8086751103401184
-2,24,0.8004660606384277
-2,18,0.785577118396759
-2,17,0.7784126400947571
-2,12,0.7782026529312134
-3,9,0.8539096117019653
-3,22,0.8404350876808167
-3,18,0.8282891511917114
-3,4,0.8259474039077759
-3,24,0.811735212802887
-3,39,0.8077635169029236
-3,17,0.7992275953292847
-3,20,0.7915365099906921
-4,9,0.8870216608047485
-4,24,0.8615887761116028
-4,22,0.8158358335494995
-4,16,0.7918683886528015
-4,37,0.7798715829849243
-4,18,0.7657873034477234
-4,31,0.7571404576301575
-4,17,0.7570757865905762
-5,14,0.8143439888954163
-5,6,0.7985314130783081
-5,28,0.7884603142738342
-5,11,0.7449405789375305
-5,25,0.740825891494751
-5,19,0.6975479125976562
-5,21,0.6868026852607727
-5,8,0.6849405765533447
-5,33,0.6784104704856873
-6,14,0.8182580471038818
-6,19,0.750801682472229
-6,25,0.7427613735198975
-6,11,0.7363841533660889
-6,30,0.7348697185516357
-6,10,0.7282536625862122
-6,33,0.7279344201087952
-6,8,0.7216796278953552
-6,16,0.719841480255127
-7,40,0.7244952917098999
-7,38,0.7112624645233154
-7,27,0.7013206481933594
-7,19,0.6757240295410156
-7,26,0.6717029213905334
-7,8,0.6609532237052917
-7,34,0.6526525020599365
-7,13,0.6508517861366272
-7,35,0.6474394798278809
-8,25,0.8516261577606201
-8,21,0.8042544722557068
-8,11,0.7941427230834961
-8,33,0.7737529873847961
-8,29,0.7585815787315369
-8,12,0.7527271509170532
-8,24,0.7489237785339355
-8,10,0.7367668151855469
-8,19,0.734015703201294
-9,22,0.8942283391952515
-9,24,0.8805562257766724
-9,18,0.8260312676429749
-9,37,0.8246875405311584
-9,16,0.8053604960441589
-9,17,0.7985054850578308
-10,33,0.8648611307144165
-10,19,0.8244063854217529
-10,11,0.7983247637748718
-10,21,0.787279486656189
-10,23,0.7678930759429932
-10,14,0.7641852498054504
-10,25,0.748027503490448
-11,33,0.8571269512176514
-11,21,0.84324711561203
-11,25,0.7814110517501831
-11,23,0.7772122621536255
-11,19,0.7580322623252869
-11,14,0.7576926946640015
-12,22,0.8479377627372742
-12,20,0.8160759210586548
-12,24,0.8065560460090637
-12,37,0.7752041816711426
-12,33,0.7572546601295471
-13,26,0.6975035071372986
-13,176,0.6555173397064209
-13,144,0.6515645980834961
-13,27,0.6202837228775024
-13,175,0.6146080493927002
-13,29,0.5839190483093262
-13,49,0.5792005062103271
-13,34,0.5501814484596252
-14,33,0.7710273265838623
-14,19,0.7385721206665039
-14,25,0.7300823330879211
-14,209,0.716747522354126
-14,17,0.7026445269584656
-14,23,0.7017027735710144
-15,30,0.8010936379432678
-15,16,0.7933809757232666
-15,29,0.7317967414855957
-15,17,0.7088048458099365
-15,25,0.6958081126213074
-15,24,0.6418413519859314
-16,30,0.7952247858047485
-16,17,0.7948479652404785
-16,37,0.7320859432220459
-16,24,0.7239372730255127
-16,29,0.7207595705986023
-17,23,0.86628258228302
-17,18,0.8065087795257568
-17,20,0.7817883491516113
-17,22,0.770809531211853
-17,30,0.7697322368621826
-18,22,0.8062725067138672
-18,23,0.7947471141815186
-18,24,0.7872437834739685
-18,20,0.7306552529335022
-19,33,0.8364794850349426
-19,23,0.8028221130371094
-19,24,0.780271589756012
-19,37,0.7789359092712402
-19,22,0.7768694162368774
-19,21,0.7710431218147278
-20,22,0.8388116955757141
-20,23,0.812977135181427
-20,35,0.8036069869995117
-20,24,0.7855020761489868
-21,33,0.8765466213226318
-21,41,0.7796688079833984
-21,24,0.7187824845314026
-21,23,0.7159748673439026
-22,24,0.897252082824707
-22,37,0.832798957824707
-23,33,0.8130511045455933
-23,35,0.7742037773132324
-24,37,0.8609868288040161
-25,33,0.7179180383682251
-25,29,0.7037075161933899
-26,27,0.7089672684669495
-26,38,0.6841854453086853
-26,29,0.5707626938819885
-26,32,0.561694860458374
-26,198,0.5363190174102783
-27,34,0.5580548048019409
-27,49,0.5418205261230469
-27,38,0.5135074853897095
-27,40,0.498140811920166
-27,32,0.4979143738746643
-28,89,0.7525746822357178
-28,81,0.7299407124519348
-28,172,0.7289273738861084
-28,34,0.7256024479866028
-28,69,0.7153490781784058
-28,105,0.7003678679466248
-28,109,0.6991168260574341
-29,30,0.6979666352272034
-29,34,0.6253350973129272
-31,37,0.7127242684364319
-32,38,0.660338819026947
-32,39,0.6327863931655884
-32,216,0.613688588142395
-32,35,0.600882887840271
-34,143,0.6706706881523132
-34,196,0.613840639591217
-36,103,0.8285008072853088
-36,157,0.7862680554389954
-36,96,0.7361161112785339
-36,99,0.7116652727127075
-38,44,0.6883943676948547
-38,40,0.6632125377655029
-40,87,0.5969949960708618
-47,277,0.45796048641204834
-47,185,0.4532289505004883
-48,272,0.44031667709350586
-50,87,0.5098288655281067
-50,152,0.49562346935272217
-50,146,0.48161107301712036
-51,78,0.5639631748199463
-51,73,0.5532376170158386
-51,57,0.5067203044891357
-51,58,0.4887620210647583
-51,62,0.4750690460205078
-52,61,0.4763869047164917
-52,256,0.4753164052963257
-52,55,0.4725809097290039
-53,246,0.4368993043899536
-54,55,0.40575289726257324
-54,78,0.3874680995941162
-54,200,0.3808462619781494
-54,58,0.3780566453933716
-54,173,0.37138044834136963
-55,58,0.5025889873504639
-55,118,0.49254655838012695
-56,71,0.6079908609390259
-57,78,0.5477092862129211
-57,62,0.5357002019882202
-57,206,0.5263291001319885
-57,73,0.5214331150054932
-58,206,0.49386805295944214
-58,78,0.4924006462097168
-59,73,0.48165106773376465
-61,247,0.55800861120224
-61,78,0.5458370447158813
-61,118,0.5446202158927917
-62,76,0.5152625441551208
-62,122,0.5148835182189941
-62,78,0.5085645914077759
-64,73,0.47556376457214355
-65,130,0.546639084815979
-66,207,0.46024811267852783
-67,326,0.45714640617370605
-69,137,0.5715113878250122
-69,77,0.5478390455245972
-69,89,0.5474228858947754
-69,81,0.5233451128005981
-69,172,0.5224259495735168
-70,71,0.47290194034576416
-70,150,0.4314534068107605
-73,78,0.5180177092552185
-74,78,0.48567867279052734
-75,91,0.44603848457336426
-75,249,0.4302132725715637
-76,193,0.5059988498687744
-76,118,0.49669092893600464
-77,137,0.5921548008918762
-77,172,0.4651573896408081
-79,120,0.520020067691803
-80,328,0.5837807655334473
-81,89,0.5745702385902405
-81,199,0.531920850276947
-81,109,0.5184100270271301
-81,95,0.5064852833747864
-81,100,0.4993398189544678
-82,201,0.5173115134239197
-83,329,0.5420440435409546
-83,119,0.536434531211853
-85,245,0.5460833311080933
-87,146,0.546908438205719
-88,121,0.5691497325897217
-89,199,0.5701295733451843
-89,109,0.563956618309021
-89,172,0.5503225326538086
-89,95,0.550078809261322
-89,105,0.5427832007408142
-90,323,0.48802798986434937
-90,300,0.4850788116455078
-93,149,0.5228606462478638
-93,125,0.5196143984794617
-94,224,0.563357412815094
-95,105,0.5746630430221558
-95,199,0.48902809619903564
-95,172,0.48444288969039917
-95,109,0.4787939190864563
-96,103,0.5978460311889648
-96,157,0.5674377083778381
-96,99,0.47249358892440796
-96,273,0.437984824180603
-97,310,0.43745315074920654
-98,300,0.5316892862319946
-99,157,0.6153339147567749
-99,103,0.5493424534797668
-99,136,0.33544373512268066
-100,172,0.46653473377227783
-100,199,0.4648948907852173
-101,130,0.5432170629501343
-101,291,0.45505523681640625
-102,227,0.4682302474975586
-103,157,0.6693390607833862
-104,173,0.5683457851409912
-105,172,0.5557391047477722
-105,199,0.4871171712875366
-105,159,0.4683002829551697
-105,145,0.467085599899292
-106,152,0.48440468311309814
-107,290,0.4875049591064453
-107,153,0.4799516797065735
-107,112,0.4743826389312744
-108,265,0.42710554599761963
-108,326,0.4103745222091675
-109,172,0.5469606518745422
-109,199,0.4987417459487915
-109,137,0.4831550121307373
-109,145,0.47906357049942017
-110,172,0.5299332141876221
-110,243,0.47926414012908936
-110,242,0.43927574157714844
-110,123,0.4370248317718506
-111,271,0.3825233578681946
-111,253,0.3819923400878906
-111,245,0.35489600896835327
-111,315,0.3505204916000366
-113,211,0.2476775050163269
-113,284,0.23937666416168213
-113,241,0.23555946350097656
-114,179,0.24251151084899902
-114,228,0.19952285289764404
-114,202,0.198292076587677
-114,233,0.19396454095840454
-114,267,0.1843113899230957
-115,315,0.38402044773101807
-115,280,0.3655822277069092
-115,268,0.35791015625
-115,274,0.30847686529159546
-115,162,0.30200278759002686
-115,253,0.3012024760246277
-115,301,0.30101239681243896
-116,143,0.45170390605926514
-119,326,0.5068856477737427
-120,269,0.5181133151054382
-122,147,0.5749568343162537
-123,135,0.4616212844848633
-123,140,0.45282065868377686
-124,323,0.44456398487091064
-125,135,0.5413295030593872
-127,148,0.5287896990776062
-127,134,0.5085285902023315
-128,276,0.49376827478408813
-129,248,0.43626612424850464
-131,278,0.4838223457336426
-131,213,0.4832482933998108
-132,304,0.46181005239486694
-132,169,0.43860894441604614
-136,263,0.521680474281311
-136,165,0.49577754735946655
-137,172,0.4679293632507324
-137,199,0.4648488163948059
-139,247,0.5051453113555908
-140,273,0.4924865961074829
-141,309,0.4703938961029053
-141,162,0.44713181257247925
-141,178,0.4278908967971802
-141,274,0.4039841890335083
-141,253,0.40040838718414307
-142,253,0.4048103094100952
-143,224,0.4375274181365967
-143,248,0.42125940322875977
-144,176,0.5300025343894958
-144,175,0.4643594026565552
-144,166,0.3459310531616211
-145,159,0.5485456585884094
-147,275,0.48983412981033325
-147,254,0.47861701250076294
-148,261,0.46489787101745605
-148,183,0.4569733142852783
-149,192,0.5265158414840698
-149,300,0.5144801735877991
-150,301,0.5706905126571655
-155,323,0.44709300994873047
-156,259,0.3981962203979492
-156,246,0.39813756942749023
-158,182,0.45595765113830566
-158,222,0.450283408164978
-159,188,0.45554643869400024
-162,216,0.4613257646560669
-162,178,0.43130773305892944
-163,233,0.4447256326675415
-164,219,0.4431595802307129
-166,176,0.3637058734893799
-166,175,0.36088234186172485
-168,283,0.46012210845947266
-170,239,0.38576745986938477
-170,206,0.37961429357528687
-171,327,0.4605318307876587
-172,199,0.5130306482315063
-174,196,0.4665856957435608
-175,176,0.45400989055633545
-177,272,0.4394771456718445
-178,309,0.3890535831451416
-179,280,0.42250412702560425
-179,296,0.4163488745689392
-181,219,0.36220061779022217
-185,203,0.489848256111145
-186,307,0.43291711807250977
-188,199,0.48676347732543945
-188,292,0.45602238178253174
-189,268,0.4496598243713379
-189,216,0.4233663082122803
-189,214,0.3863317370414734
-189,274,0.36566078662872314
-189,280,0.3445465564727783
-190,333,0.357526957988739
-191,233,0.4537600874900818
-191,236,0.36975181102752686
-194,213,0.3778994083404541
-202,266,0.4651808738708496
-202,297,0.4411799907684326
-204,290,0.3363552689552307
-205,261,0.3784828186035156
-209,289,0.49530208110809326
-209,213,0.4907146692276001
-211,230,0.41575348377227783
-211,232,0.40931373834609985
-214,280,0.4676867723464966
-214,258,0.43147730827331543
-215,270,0.39143526554107666
-216,268,0.4717845916748047
-217,224,0.44120335578918457
-218,224,0.3506225347518921
-218,324,0.31930792331695557
-222,269,0.48943328857421875
-223,309,0.47238999605178833
-226,275,0.29364705085754395
-226,327,0.26693201065063477
-229,319,0.34096217155456543
-229,306,0.3322601914405823
-229,317,0.2562401294708252
-229,277,0.24292689561843872
-230,316,0.3588387966156006
-230,315,0.325674831867218
-231,328,0.5034037232398987
-234,251,0.39620864391326904
-235,304,0.2752126455307007
-236,272,0.39988982677459717
-240,281,0.21794962882995605
-241,293,0.20585894584655762
-241,316,0.2034989595413208
-242,243,0.4825235605239868
-245,332,0.5058653950691223
-246,275,0.49160534143447876
-253,309,0.46814537048339844
-259,277,0.5404796004295349
-260,309,0.478654146194458
-265,309,0.48589831590652466
-274,309,0.44625234603881836
-274,290,0.42190390825271606
-274,280,0.41488969326019287
-276,323,0.4206697940826416
-279,303,0.5545428395271301
-284,325,0.40888744592666626
-287,303,0.4698988199234009
-315,317,0.4240449070930481
-319,324,0.19622111320495605
-327,328,0.516725480556488
+0,31,0.8977803587913513
+0,34,0.8810375928878784
+0,40,0.8772329092025757
+0,45,0.8660504221916199
+0,43,0.8513924479484558
+0,6,0.844020426273346
+0,9,0.8345528244972229
+0,24,0.8154899477958679
+0,8,0.7969983220100403
+0,11,0.7937827110290527
+1,14,0.8878433704376221
+1,29,0.8724908232688904
+1,25,0.8399646282196045
+1,36,0.8351666927337646
+1,16,0.8309934139251709
+1,24,0.813221275806427
+1,33,0.8018666505813599
+1,32,0.79311203956604
+1,2,0.7905176877975464
+1,19,0.7875863909721375
+2,29,0.8795833587646484
+2,5,0.8604088425636292
+2,32,0.8311351537704468
+2,20,0.8273961544036865
+2,22,0.82523113489151
+2,41,0.8063660860061646
+2,14,0.7996804714202881
+2,15,0.7864233255386353
+2,18,0.7664972543716431
+3,10,0.8148313760757446
+3,7,0.802722156047821
+3,28,0.7898733615875244
+3,44,0.7833206057548523
+3,11,0.7539969086647034
+3,43,0.7082923054695129
+3,9,0.7024086713790894
+3,17,0.6964817643165588
+3,34,0.6818133592605591
+3,24,0.6752511858940125
+4,42,0.7077053189277649
+4,27,0.7043713331222534
+4,26,0.6737131476402283
+4,24,0.6729340553283691
+4,35,0.6597590446472168
+4,12,0.6526534557342529
+4,30,0.6514875292778015
+4,37,0.6512376070022583
+4,9,0.6464720368385315
+4,7,0.6456587910652161
+5,32,0.8825829029083252
+5,22,0.865714430809021
+5,15,0.8505144715309143
+5,14,0.8342769742012024
+5,39,0.8312499523162842
+5,20,0.824216902256012
+5,33,0.8168505430221558
+5,18,0.8045305013656616
+5,21,0.7827723026275635
+6,31,0.8654193878173828
+6,34,0.8616963028907776
+6,24,0.8199679851531982
+6,25,0.7706893682479858
+6,45,0.7635019421577454
+6,10,0.7630526423454285
+6,9,0.7623714804649353
+6,11,0.7619156241416931
+6,16,0.7514136433601379
+7,21,0.8324525356292725
+7,10,0.816399335861206
+7,11,0.7403889894485474
+7,24,0.7388066053390503
+7,9,0.7360509634017944
+7,34,0.7242016792297363
+7,17,0.7204381227493286
+7,18,0.7118165493011475
+8,16,0.8634747266769409
+8,14,0.862774133682251
+8,36,0.852615237236023
+8,32,0.8208462595939636
+8,9,0.7936017513275146
+8,39,0.7720011472702026
+8,34,0.7580292224884033
+9,17,0.8578795194625854
+9,34,0.8365347981452942
+9,11,0.8314647674560547
+9,40,0.801241397857666
+9,45,0.7842069268226624
+9,43,0.7821365594863892
+9,23,0.7797811627388
+9,31,0.7723779082298279
+10,34,0.7767165899276733
+10,11,0.762061357498169
+10,21,0.7552158236503601
+10,24,0.7233947515487671
+10,214,0.7145930528640747
+10,32,0.7131392955780029
+10,17,0.7122482657432556
+11,34,0.8466140031814575
+11,31,0.820106029510498
+11,17,0.7856882810592651
+11,25,0.7710176110267639
+11,32,0.7587184906005859
+12,26,0.6972067952156067
+12,23,0.676071047782898
+12,182,0.6562138795852661
+12,149,0.6518442034721375
+12,27,0.6211751103401184
+12,181,0.6120770573616028
+12,50,0.5792689919471741
+12,42,0.5500938892364502
+12,35,0.5486083626747131
+13,21,0.8315720558166504
+13,18,0.7941164970397949
+13,17,0.708163857460022
+13,23,0.6956810355186462
+13,22,0.6949196457862854
+13,19,0.6622960567474365
+14,16,0.8752783536911011
+14,32,0.8582371473312378
+14,33,0.8525357246398926
+14,15,0.8500776290893555
+14,36,0.8457627892494202
+14,39,0.8210741281509399
+15,22,0.8837902545928955
+15,33,0.8169354796409607
+15,16,0.812397837638855
+15,39,0.7931049466133118
+15,32,0.7879606485366821
+15,36,0.7619642019271851
+16,32,0.8080924153327942
+16,29,0.7992691397666931
+16,36,0.7874014973640442
+16,25,0.782246470451355
+16,34,0.775856614112854
+17,22,0.7472603917121887
+17,32,0.7424012422561646
+17,23,0.7412582039833069
+17,21,0.7298331260681152
+18,21,0.8303669095039368
+18,22,0.8081905245780945
+18,19,0.7407901287078857
+18,39,0.7350496649742126
+19,25,0.8633155822753906
+19,37,0.7859317064285278
+19,29,0.7781713008880615
+19,21,0.7779765129089355
+19,20,0.7702612280845642
+20,32,0.7963016629219055
+20,25,0.789772629737854
+20,29,0.7653483152389526
+20,22,0.747230589389801
+21,22,0.7668727040290833
+21,32,0.7543580532073975
+21,34,0.7393394112586975
+22,33,0.7798047661781311
+22,32,0.7683005928993225
+22,39,0.7547322511672974
+23,35,0.7034220099449158
+23,28,0.634371280670166
+24,34,0.8434134721755981
+24,25,0.8063956499099731
+24,39,0.7726462483406067
+24,32,0.7646659016609192
+24,41,0.7619087100028992
+25,34,0.8220798373222351
+25,29,0.7994638681411743
+25,32,0.7967017292976379
+25,37,0.7754995822906494
+26,27,0.7087596654891968
+26,42,0.6855107545852661
+26,30,0.5974437594413757
+26,36,0.5518877506256104
+26,204,0.53631192445755
+26,50,0.5348116159439087
+27,35,0.5560804605484009
+27,50,0.5417521595954895
+27,30,0.5190187096595764
+27,42,0.5129047632217407
+28,92,0.750503659248352
+28,177,0.7305154204368591
+28,84,0.7295807600021362
+28,35,0.7245665788650513
+28,72,0.7113718390464783
+28,113,0.7002217769622803
+28,109,0.6996691226959229
+29,41,0.8128001093864441
+29,30,0.7830193042755127
+29,36,0.7779010534286499
+30,42,0.7298600077629089
+30,41,0.6778432130813599
+30,37,0.6694676280021667
+31,34,0.8364620208740234
+31,45,0.7955753803253174
+31,40,0.7873132228851318
+31,43,0.7461016178131104
+31,41,0.744159996509552
+32,36,0.8531866073608398
+32,39,0.8015112280845642
+32,34,0.794256865978241
+33,39,0.81208735704422
+34,40,0.8281964063644409
+34,45,0.7984107732772827
+35,148,0.667901337146759
+36,41,0.7462542653083801
+37,41,0.7060703039169312
+38,106,0.8009567856788635
+38,162,0.7490549683570862
+38,99,0.7172720432281494
+38,102,0.6855485439300537
+38,43,0.6192739605903625
+40,45,0.7971357107162476
+40,43,0.7909995317459106
+43,45,0.777463436126709
+49,277,0.43807709217071533
+51,90,0.5098288655281067
+51,157,0.49562346935272217
+51,151,0.48161107301712036
+52,81,0.5639631748199463
+52,76,0.5532376170158386
+52,58,0.5067203044891357
+53,63,0.4763869047164917
+55,59,0.47333824634552
+55,56,0.40575289726257324
+55,81,0.387468159198761
+55,206,0.3808462619781494
+55,60,0.3780566453933716
+55,178,0.37138044834136963
+56,60,0.5025889873504639
+56,122,0.49254655838012695
+57,74,0.6079908609390259
+58,81,0.5477092862129211
+58,64,0.5357002019882202
+58,212,0.5263291001319885
+58,76,0.5214331150054932
+59,81,0.46680325269699097
+59,212,0.46478450298309326
+59,77,0.44830232858657837
+60,212,0.49386805295944214
+61,76,0.48165106773376465
+63,251,0.55800861120224
+63,81,0.5458370447158813
+64,79,0.5152625441551208
+64,126,0.5148835778236389
+64,81,0.5085645914077759
+66,76,0.47556376457214355
+67,134,0.546639084815979
+68,144,0.47771918773651123
+68,69,0.4580073356628418
+68,280,0.4409956932067871
+69,213,0.46024811267852783
+70,331,0.45714640617370605
+72,142,0.5715115070343018
+72,80,0.5478390455245972
+72,92,0.5474228858947754
+72,84,0.5233451128005981
+72,177,0.5224257707595825
+73,74,0.47290194034576416
+76,81,0.5180177092552185
+77,81,0.48567867279052734
+78,94,0.44603848457336426
+79,199,0.5059988498687744
+79,122,0.49669092893600464
+80,142,0.592154860496521
+80,177,0.46515733003616333
+82,124,0.5200200080871582
+84,92,0.5745702385902405
+84,205,0.531920850276947
+84,113,0.5184100270271301
+84,98,0.5064852833747864
+84,103,0.4993398189544678
+85,207,0.5173115134239197
+86,334,0.5420440435409546
+89,257,0.4397265911102295
+90,151,0.5469082593917847
+91,125,0.5691497325897217
+92,205,0.5701294541358948
+92,113,0.5639565587043762
+92,177,0.5503225326538086
+92,98,0.550078809261322
+92,109,0.5427832007408142
+97,228,0.563357412815094
+98,109,0.5746630430221558
+98,205,0.48902809619903564
+98,177,0.48444288969039917
+98,113,0.4787939190864563
+99,106,0.5978460311889648
+99,162,0.5674377083778381
+99,102,0.47249358892440796
+99,278,0.437984824180603
+100,317,0.43745315074920654
+101,307,0.5316894054412842
+102,162,0.6153339743614197
+102,106,0.5493424534797668
+102,141,0.3354438543319702
+103,177,0.46653473377227783
+103,205,0.4648948907852173
+104,134,0.543217122554779
+104,297,0.45505499839782715
+105,231,0.46823036670684814
+106,162,0.6693390607833862
+107,178,0.5683457851409912
+108,222,0.3950558304786682
+108,115,0.34232062101364136
+108,257,0.3274776339530945
+109,177,0.5557391047477722
+109,205,0.4871171712875366
+109,164,0.4683002829551697
+109,150,0.467085599899292
+110,157,0.48440468311309814
+111,296,0.4875049591064453
+111,158,0.4799516797065735
+111,116,0.4743826389312744
+112,269,0.42710554599761963
+112,331,0.4103745222091675
+113,177,0.5469606518745422
+113,205,0.4987417459487915
+113,142,0.4831550121307373
+113,150,0.47906357049942017
+114,177,0.5299332141876221
+114,247,0.47926414012908936
+114,246,0.43927574157714844
+114,127,0.4370248317718506
+115,276,0.3825233578681946
+115,257,0.3819923400878906
+115,249,0.35489600896835327
+115,322,0.3505204916000366
+117,216,0.2476775050163269
+117,290,0.23937666416168213
+117,245,0.23555946350097656
+117,264,0.22891783714294434
+118,185,0.24251151084899902
+118,232,0.19952285289764404
+118,208,0.198292076587677
+118,237,0.19396454095840454
+118,271,0.1843113899230957
+119,322,0.38402044773101807
+119,286,0.3655822277069092
+119,272,0.35791015625
+119,279,0.30847686529159546
+119,167,0.30200278759002686
+119,257,0.3012024760246277
+119,308,0.30101239681243896
+120,148,0.45170390605926514
+123,331,0.5068856477737427
+124,274,0.5181133151054382
+126,152,0.5749568343162537
+127,140,0.4616212844848633
+127,145,0.45282065868377686
+129,140,0.5413295030593872
+131,153,0.5287896990776062
+132,281,0.49376827478408813
+133,252,0.43626612424850464
+135,283,0.4838223457336426
+137,311,0.46181005239486694
+137,174,0.43860894441604614
+137,307,0.4376899003982544
+138,258,0.5311465859413147
+141,267,0.521680474281311
+141,170,0.49577754735946655
+142,177,0.4679293632507324
+142,205,0.4648488163948059
+144,251,0.5051453113555908
+145,278,0.4924865961074829
+146,316,0.4703938961029053
+146,167,0.44713181257247925
+146,184,0.4278908967971802
+146,279,0.4039841890335083
+146,257,0.40040838718414307
+147,257,0.4048103094100952
+148,228,0.4375274181365967
+149,182,0.5300025343894958
+149,181,0.4643594026565552
+149,171,0.3459310531616211
+150,164,0.5485456585884094
+150,277,0.46779483556747437
+152,280,0.48983412981033325
+152,258,0.47861701250076294
+154,198,0.5265158414840698
+155,308,0.5706905126571655
+156,327,0.4072921872138977
+161,263,0.3981962203979492
+161,250,0.39813756942749023
+162,278,0.379364013671875
+163,188,0.45595765113830566
+163,226,0.450283408164978
+164,194,0.45554643869400024
+164,205,0.42200660705566406
+165,304,0.36845147609710693
+167,221,0.4613257646560669
+168,237,0.4447256326675415
+168,304,0.387550950050354
+169,223,0.4431595802307129
+171,182,0.3637058734893799
+171,181,0.36088234186172485
+173,289,0.46012210845947266
+175,243,0.38576745986938477
+175,212,0.37961429357528687
+177,205,0.5130306482315063
+180,202,0.4665856957435608
+181,182,0.45400989055633545
+185,286,0.42250412702560425
+185,302,0.4163488745689392
+187,223,0.36220061779022217
+191,209,0.489848256111145
+192,314,0.43291711807250977
+194,205,0.48676347732543945
+194,298,0.45602238178253174
+195,272,0.4496598243713379
+195,221,0.4233663082122803
+195,219,0.3863317370414734
+195,279,0.36566078662872314
+195,286,0.3445465564727783
+196,338,0.357526957988739
+197,237,0.4537600874900818
+197,240,0.36975181102752686
+200,218,0.3778994083404541
+207,284,0.5217409133911133
+208,270,0.4651808738708496
+208,303,0.4411799907684326
+210,296,0.3363552689552307
+211,265,0.3784828186035156
+214,284,0.5761439204216003
+214,295,0.49530208110809326
+214,218,0.4907146692276001
+216,234,0.41575348377227783
+216,236,0.40931373834609985
+217,273,0.24484598636627197
+219,286,0.4676867723464966
+219,262,0.43147730827331543
+220,275,0.39143526554107666
+222,228,0.3506225347518921
+222,329,0.31930792331695557
+224,273,0.3862125277519226
+226,274,0.48943328857421875
+227,316,0.47238999605178833
+230,280,0.29364705085754395
+230,332,0.26693201065063477
+231,295,0.4608854055404663
+233,326,0.34096217155456543
+233,313,0.3322601914405823
+233,324,0.2562401294708252
+233,282,0.24292689561843872
+234,323,0.3588387966156006
+234,322,0.325674831867218
+235,333,0.5034037232398987
+238,255,0.39620864391326904
+239,311,0.2752126455307007
+240,277,0.39988982677459717
+240,250,0.3901190757751465
+244,287,0.21794962882995605
+245,299,0.20585894584655762
+245,323,0.2034989595413208
+246,247,0.4825235605239868
+250,280,0.49160534143447876
+252,262,0.5898411273956299
+257,316,0.46814537048339844
+263,282,0.5404796004295349
+264,316,0.478654146194458
+264,272,0.4478054642677307
+269,316,0.48589831590652466
+279,316,0.44625234603881836
+279,296,0.42190390825271606
+279,286,0.41488969326019287
+280,304,0.5190343856811523
+284,295,0.5121264457702637
+285,310,0.5545428395271301
+290,330,0.40888744592666626
+293,310,0.4698988199234009
+322,324,0.4240449070930481
+326,329,0.19622111320495605
+332,333,0.516725480556488
 `;
 
       const fmtInt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 });
@@ -1646,6 +1437,7 @@
         if (!adj.has(b)) adj.set(b, []);
         adj.get(a).push({ id: b, sim: s });
         adj.get(b).push({ id: a, sim: s });
+        if (!topicsById.has(a) || !topicsById.has(b)) continue;
         if (!topicsById.has(a)) topicsById.set(a, { topic_id: a, n_publications: 0, label: `Topic ${a}`, confidence: 0 });
         if (!topicsById.has(b)) topicsById.set(b, { topic_id: b, n_publications: 0, label: `Topic ${b}`, confidence: 0 });
       }
@@ -1726,6 +1518,7 @@
 
         for (const id of topicIds) {
           const t = getTopic(id);
+          if (t.n_publications == 0) continue;
           if (q) {
             const hay = `${t.topic_id} ${t.label}`.toLowerCase();
             if (!hay.includes(q)) continue;
@@ -1756,7 +1549,7 @@
           sub.append(left, right);
 
           meta.append(name, sub);
-          btn.append(badge, meta);
+          btn.append(meta);
 
           btn.addEventListener('click', () => setSelected(id));
           frag.appendChild(btn);
@@ -1782,7 +1575,6 @@
 
         selectedH1El.innerHTML = `
           <span>${escapeHtml(t.label || `Topic ${id}`)}</span>
-          <span class='kicker'>topic_id: ${id}</span>
         `;
 
         const pubs = fmtInt.format(t.n_publications || 0);
@@ -1847,7 +1639,6 @@
           <div class='detailGrid'>
             <div>
               <div class='kv'>
-                <span class='k'>topic_id</span><span class='v'>${escapeHtml(String(t.topic_id))}</span>
                 <span class='k'>label</span><span class='v' style='font-family:var(--sans);'>${escapeHtml(t.label || `Topic ${id}`)}</span>
               </div>
               <div class='keywords'>${kwHtml || `<span class='small'>No keywords for this topic_id in the JSONL.</span>`}</div>
@@ -1915,7 +1706,7 @@
           const sub = document.createElement('div');
           sub.className = 'small';
           const hasKw = keywordsById.has(row.id);
-          sub.textContent = `topic_id ${row.id}${hasKw ? ' · keywords ✓' : ''}`;
+          /*sub.textContent = `topic_id ${row.id}${hasKw ? ' · keywords ✓' : ''}`;*/
           tdName.appendChild(a);
           tdName.appendChild(sub);
 
@@ -2002,7 +1793,7 @@
           const sub = document.createElement('div');
           sub.className = 'small';
           const hasKw = keywordsById.has(row.id);
-          sub.textContent = `topic_id ${row.id}${hasKw ? ' · keywords ✓' : ''}`;
+          //sub.textContent = `topic_id ${row.id}${hasKw ? ' · keywords ✓' : ''}`;
           tdName.appendChild(a);
           tdName.appendChild(sub);
 
