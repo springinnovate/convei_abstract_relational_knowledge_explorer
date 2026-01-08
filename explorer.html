@@ -1432,14 +1432,12 @@
       for (const r of simRows) {
         const a = Number(r.topic_a);
         const b = Number(r.topic_b);
+        if (!topicsById.has(a) || !topicsById.has(b)) continue;
         const s = Number(r.similarity || 0);
         if (!adj.has(a)) adj.set(a, []);
         if (!adj.has(b)) adj.set(b, []);
         adj.get(a).push({ id: b, sim: s });
         adj.get(b).push({ id: a, sim: s });
-        if (!topicsById.has(a) || !topicsById.has(b)) continue;
-        if (!topicsById.has(a)) topicsById.set(a, { topic_id: a, n_publications: 0, label: `Topic ${a}`, confidence: 0 });
-        if (!topicsById.has(b)) topicsById.set(b, { topic_id: b, n_publications: 0, label: `Topic ${b}`, confidence: 0 });
       }
 
       const topicIds = Array.from(topicsById.keys()).sort((x, y) => {
