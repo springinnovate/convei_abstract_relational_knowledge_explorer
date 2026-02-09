@@ -1,7 +1,15 @@
 from __future__ import annotations
 
-from sqlalchemy import Integer, String, Text, LargeBinary, Index
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import (
+    Integer,
+    Text,
+    String,
+    LargeBinary,
+    ForeignKey,
+    Index,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -33,8 +41,85 @@ class Publication(Base):
     satellite_type: Mapped[str | None] = mapped_column(Text)
     type_evidence: Mapped[str | None] = mapped_column(Text)
 
+    raw_topics: Mapped[list["RawTopics"]] = relationship(
+        secondary="raw_topic_to_pub",
+        back_populates="publications",
+        lazy="selectin",
+    )
+    normalized_topics: Mapped[list["NormalizedTopics"]] = relationship(
+        secondary="normalized_topic_to_pub",
+        back_populates="publications",
+        lazy="selectin",
+    )
+
     __table_args__ = (
         Index(
             "ix_publications_year_type", "publication_year", "published_in_type"
         ),
+    )
+
+
+class RawTopics(Base):
+    __tablename__ = "raw_topics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    topic: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+
+    publications: Mapped[list["Publication"]] = relationship(
+        secondary="raw_topic_to_pub",
+        back_populates="raw_topics",
+        lazy="selectin",
+    )
+
+
+class RawTopicToPublication(Base):
+    __tablename__ = "raw_topic_to_pub"
+
+    topic_id: Mapped[int] = mapped_column(
+        ForeignKey("raw_topics.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    publication_id: Mapped[int] = mapped_column(
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("topic_id", "publication_id", name="uq_raw_topic_pub"),
+        Index("ix_raw_topic_pub_pub_id", "publication_id", "topic_id"),
+        Index("ix_raw_topic_pub_topic_id", "topic_id", "publication_id"),
+    )
+
+
+class NormalizedTopics(Base):
+    __tablename__ = "normalized_topics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    topic: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+
+    publications: Mapped[list["Publication"]] = relationship(
+        secondary="normalized_topic_to_pub",
+        back_populates="normalized_topics",
+        lazy="selectin",
+    )
+
+
+class NormalizedTopicToPublication(Base):
+    __tablename__ = "normalized_topic_to_pub"
+
+    topic_id: Mapped[int] = mapped_column(
+        ForeignKey("normalized_topics.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    publication_id: Mapped[int] = mapped_column(
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "topic_id", "publication_id", name="uq_norm_topic_pub"
+        ),
+        Index("ix_norm_topic_pub_pub_id", "publication_id", "topic_id"),
+        Index("ix_norm_topic_pub_topic_id", "topic_id", "publication_id"),
     )
