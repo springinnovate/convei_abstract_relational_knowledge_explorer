@@ -1,12 +1,72 @@
+from tqdm import tqdm
 from rapidfuzz import fuzz
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 from models import Base
 import re
 import yake
 from collections import Counter
+from models import Publication, RawTopics, RawTopicToPublication
 
 DB_PATH = "2025_11_09_researchgate.sqlite"
 ENGINE_URL = f"sqlite:///{DB_PATH}"
+
+BAD_START = {
+    "examining",
+    "using",
+    "learning",
+    "capturing",
+    "improving",
+    "improved",
+    "improve",
+    "addressing",
+    "address",
+    "extracting",
+    "extract",
+    "based",
+    "show",
+    "shows",
+    "shown",
+    "found",
+    "finding",
+    "demonstrate",
+    "demonstrated",
+    "providing",
+    "provide",
+    "proposes",
+}
+
+BAD_VERB = {
+    "necessitates",
+    "require",
+    "requires",
+    "causes",
+    "cause",
+    "leads",
+    "lead",
+    "affect",
+    "affects",
+    "enable",
+    "enables",
+    "improve",
+    "improves",
+    "increase",
+    "increases",
+    "reduce",
+    "reduces",
+    "make",
+    "makes",
+}
+
+TRUNC_HEADS = {
+    "remote",
+    "sensing",
+    "image",
+    "images",
+    "picture",
+    "pictures",
+    "technology",
+}
 
 STOPWORDS = {
     # standard english
@@ -280,19 +340,46 @@ def find_generic_terms(abstracts, df_threshold=0.05, min_token_len=2):
     return generic, df, n_docs
 
 
-def dedup_token_set(keywords, thresh):
+_token_re = re.compile(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*")
+
+
+def _is_acronym_or_model(tok):
+    if any(ch.isdigit() for ch in tok):
+        return True
+    if any(ch.islower() for ch in tok) and any(ch.isupper() for ch in tok):
+        return True
+    letters = [ch for ch in tok if ch.isalpha()]
+    if len(letters) >= 2 and all(ch.isupper() for ch in letters):
+        return True
+    return False
+
+
+def dedup_token_set(
+    keywords,
+    thresh,
+    min_tokens=2,
+    keep_singletons=True,
+):
     kept = []
     for kw, score in sorted(keywords, key=lambda x: x[1]):
-        kw_len = len(kw.split())
+        toks = _token_re.findall(kw)
+        if len(toks) == 1 and min_tokens > 1:
+            if not (keep_singletons and _is_acronym_or_model(toks[0])):
+                continue
+        if len(toks) > 1 and len(toks) < min_tokens:
+            continue
+
+        kw_len = len(toks)
         replace_idx = None
         drop = False
         for i, (k2, s2) in enumerate(kept):
             if fuzz.token_set_ratio(kw, k2) >= thresh:
-                if kw_len < len(k2.split()):
+                if kw_len < len(_token_re.findall(k2)):
                     replace_idx = i
                 else:
                     drop = True
                 break
+
         if replace_idx is not None:
             kept[replace_idx] = (kw, score)
         elif not drop:
@@ -300,10 +387,14 @@ def dedup_token_set(keywords, thresh):
     return kept
 
 
-def extract_kw(raw_text, generic_terms):
+def is_truncated_head_phrase(toks, max_len=3):
+    return len(toks) <= max_len and toks[-1] in TRUNC_HEADS
+
+
+def extract_kw(raw_text, generic_terms, hyper_params):
     """Extract the keywoards out of the `raw_text` field."""
     kw_list = []
-    for n_gram_size, top_n, win_size in [(3, 30, 2), (6, 50, 3)]:
+    for n_gram_size, top_n, win_size in hyper_params:
         custom_kw_extractor = yake.KeywordExtractor(
             lan="en",  # language
             n=n_gram_size,  # ngram size
@@ -319,9 +410,15 @@ def extract_kw(raw_text, generic_terms):
     out = set()
     for kw, score in deduped_keywords:
         toks = kw.lower().split()
-        if all(token in generic_terms for token in toks) or any(
-            token in STOPWORDS for token in toks
+        if (
+            toks[0] in BAD_START
+            or toks[-1] in BAD_VERB
+            or all(token in generic_terms for token in toks)
+            or any(token in STOPWORDS for token in toks)
         ):
+            continue
+        toks = [t.lower() for t in _token_re.findall(kw)]
+        if is_truncated_head_phrase(toks):
             continue
         out.add((kw, score))
     return out
@@ -337,59 +434,67 @@ def clean_text(text):
     return " ".join(token_re.findall(text.lower()))
 
 
-def extract_abstract_batch(id_range):
-    """Fetch abstracts for publications within an inclusive ID range.
-
-    Args:
-        id_range (tuple[int, int]): A (low, high) tuple specifying the inclusive
-            range of publication IDs to fetch.
-
-    Returns:
-        list[str]: A list of abstract texts for publications whose IDs fall
-            within the specified range. Publications with NULL abstracts
-            are excluded.
-    """
+def extract_publications_with_abstract(id_range):
     low, high = id_range
     engine = create_engine(ENGINE_URL, future=True)
+    Session = sessionmaker(bind=engine, future=True)
 
-    with engine.connect() as conn:
-        rows = conn.execute(
-            text(
-                """
-                SELECT abstract
-                FROM publications
-                WHERE id >= :low
-                  AND id <= :high
-                  AND abstract IS NOT NULL
-                ORDER BY id
-                """
-            ),
-            {"low": low, "high": high},
-        ).all()
-
-    return [r[0] for r in rows]
+    with Session() as session:
+        pubs = (
+            session.query(Publication)
+            .filter(Publication.id >= low, Publication.id <= high)
+            .filter(Publication.abstract.isnot(None))
+            .order_by(Publication.id)
+            .all()
+        )
+        return [(p.id, p.abstract) for p in pubs]
 
 
 def main():
-    """Entry point."""
     init_db()
-    abstract_list = extract_abstract_batch((1, 10000))
+    pubs = extract_publications_with_abstract((1, 99999999999))
+    abstract_list = [a for _, a in pubs]
+
     generic_terms, df, n_docs = find_generic_terms(
         abstract_list, df_threshold=0.15, min_token_len=2
     )
-    print(generic_terms)
-    for abstract_text in abstract_list:
-        print(abstract_text)
-        keywords = extract_kw(abstract_text, generic_terms)
-        print(
-            "\n".join(
-                [
-                    f"{x[0]} - {x[1]}"
-                    for x in sorted(keywords, key=lambda x: -x[1])
-                ]
-            )
-        )
-        return
+
+    engine = create_engine(ENGINE_URL, future=True)
+    Session = sessionmaker(bind=engine, future=True)
+
+    hyper_params = [(3, 30, 2), (6, 50, 5)]
+
+    topic_cache = {}
+    with Session() as session:
+        for t_id, t_topic in session.query(RawTopics.id, RawTopics.topic).all():
+            topic_cache[t_topic] = t_id
+
+    with Session() as session:
+        session.execute(text("PRAGMA foreign_keys=ON"))
+
+        for pub_id, abstract_text in tqdm(pubs):
+            keywords = extract_kw(abstract_text, generic_terms, hyper_params)
+            topics = [kw.strip() for kw, _ in keywords if kw and kw.strip()]
+            if not topics:
+                continue
+
+            for topic in topics:
+                topic_id = topic_cache.get(topic)
+                if topic_id is None:
+                    rt = RawTopics(topic=topic)
+                    session.add(rt)
+                    session.flush()
+                    topic_id = rt.id
+                    topic_cache[topic] = topic_id
+
+                session.merge(
+                    RawTopicToPublication(
+                        topic_id=topic_id,
+                        publication_id=pub_id,
+                    )
+                )
+
+            session.commit()
 
 
 if __name__ == "__main__":
