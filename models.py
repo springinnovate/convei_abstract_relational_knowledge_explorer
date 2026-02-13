@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from sqlalchemy import (
-    Integer,
-    Text,
-    String,
-    LargeBinary,
+    Boolean,
     ForeignKey,
     Index,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -53,9 +54,7 @@ class Publication(Base):
     )
 
     __table_args__ = (
-        Index(
-            "ix_publications_year_type", "publication_year", "published_in_type"
-        ),
+        Index("ix_publications_year_type", "publication_year", "published_in_type"),
     )
 
 
@@ -64,6 +63,12 @@ class RawTopics(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     topic: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    count: Mapped[int] = mapped_column(Integer, nullable=True, primary_key=False)
+    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    include_in_analysis: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=True,
+    )
 
     publications: Mapped[list["Publication"]] = relationship(
         secondary="raw_topic_to_pub",
@@ -117,9 +122,7 @@ class NormalizedTopicToPublication(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint(
-            "topic_id", "publication_id", name="uq_norm_topic_pub"
-        ),
+        UniqueConstraint("topic_id", "publication_id", name="uq_norm_topic_pub"),
         Index("ix_norm_topic_pub_pub_id", "publication_id", "topic_id"),
         Index("ix_norm_topic_pub_topic_id", "topic_id", "publication_id"),
     )
