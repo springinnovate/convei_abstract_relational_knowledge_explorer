@@ -126,3 +126,11 @@ class NormalizedTopicToPublication(Base):
         Index("ix_norm_topic_pub_pub_id", "publication_id", "topic_id"),
         Index("ix_norm_topic_pub_topic_id", "topic_id", "publication_id"),
     )
+
+
+class BenefitDimension(Base):
+    __tablename__ = "benefit_dimensions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
