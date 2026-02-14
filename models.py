@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     ForeignKey,
     Index,
+    Float,
     Integer,
     LargeBinary,
     String,
@@ -37,19 +38,21 @@ class Publication(Base):
     publication_year: Mapped[int | None] = mapped_column(Integer)
     publication_month: Mapped[int | None] = mapped_column(Integer)
     publication_day: Mapped[int | None] = mapped_column(Integer)
-    abstract_embedding: Mapped[bytes | None] = mapped_column(LargeBinary)
 
     satellite_type: Mapped[str | None] = mapped_column(Text)
     type_evidence: Mapped[str | None] = mapped_column(Text)
+
+    abstract_embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
     raw_topics: Mapped[list["RawTopics"]] = relationship(
         secondary="raw_topic_to_pub",
         back_populates="publications",
         lazy="selectin",
     )
-    normalized_topics: Mapped[list["NormalizedTopics"]] = relationship(
-        secondary="normalized_topic_to_pub",
-        back_populates="publications",
+
+    base_topic_distances: Mapped[list["BaseTopicToPublicationDistance"]] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
         lazy="selectin",
     )
 
@@ -96,24 +99,26 @@ class RawTopicToPublication(Base):
     )
 
 
-class NormalizedTopics(Base):
-    __tablename__ = "normalized_topics"
+class BaseTopics(Base):
+    __tablename__ = "base_topics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    topic: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-
-    publications: Mapped[list["Publication"]] = relationship(
-        secondary="normalized_topic_to_pub",
-        back_populates="normalized_topics",
+    text: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    publication_distances: Mapped[
+        list["BaseTopicToPublicationDistance"]
+    ] = relationship(
+        back_populates="base_topic",
+        cascade="all, delete-orphan",
         lazy="selectin",
     )
 
 
-class NormalizedTopicToPublication(Base):
-    __tablename__ = "normalized_topic_to_pub"
+class BaseTopicToPublicationDistance(Base):
+    __tablename__ = "base_topic_to_pub_distance"
 
-    topic_id: Mapped[int] = mapped_column(
-        ForeignKey("normalized_topics.id", ondelete="CASCADE"),
+    base_topic_id: Mapped[int] = mapped_column(
+        ForeignKey("base_topics.id", ondelete="CASCADE"),
         primary_key=True,
     )
     publication_id: Mapped[int] = mapped_column(
@@ -121,16 +126,31 @@ class NormalizedTopicToPublication(Base):
         primary_key=True,
     )
 
-    __table_args__ = (
-        UniqueConstraint("topic_id", "publication_id", name="uq_norm_topic_pub"),
-        Index("ix_norm_topic_pub_pub_id", "publication_id", "topic_id"),
-        Index("ix_norm_topic_pub_topic_id", "topic_id", "publication_id"),
+    semantic_similarity: Mapped[float] = mapped_column(Float, nullable=False)
+
+    base_topic: Mapped["BaseTopics"] = relationship(
+        back_populates="publication_distances",
+        lazy="selectin",
+    )
+    publication: Mapped["Publication"] = relationship(
+        back_populates="base_topic_distances",
+        lazy="selectin",
     )
 
-
-class BenefitDimension(Base):
-    __tablename__ = "benefit_dimensions"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    text: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    __table_args__ = (
+        UniqueConstraint(
+            "base_topic_id", "publication_id", name="uq_base_topic_pub_distance"
+        ),
+        Index(
+            "ix_base_topic_pub_distance_bt",
+            "base_topic_id",
+            "semantic_similarity",
+            "publication_id",
+        ),
+        Index(
+            "ix_base_topic_pub_distance_pub",
+            "publication_id",
+            "semantic_similarity",
+            "base_topic_id",
+        ),
+    )
