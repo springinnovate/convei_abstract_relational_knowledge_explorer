@@ -191,7 +191,7 @@ def main() -> None:
                 pub_vec = np.frombuffer(pub_emb, dtype=np.float32).astype(
                     np.float32, copy=False
                 )
-                sim = bt_mat @ pub_vec
+                sim = bt_mat @ pub_vec  # matrix multiplication
 
                 items = [
                     {
