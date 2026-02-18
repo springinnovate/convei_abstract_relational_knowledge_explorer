@@ -15,8 +15,8 @@ from pathlib import Path
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from sqlalchemy import Integer, Text, LargeBinary, create_engine, select
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
 
 from models import Base, BenefitDimension
 
