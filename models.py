@@ -103,6 +103,7 @@ class BaseTopics(Base):
     __tablename__ = "base_topics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    short_name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     text: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     publication_distances: Mapped[
