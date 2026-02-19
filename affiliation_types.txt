@@ -1,0 +1,5 @@
+Academic (universities, colleges)
+Government (ministries, agencies, national labs)
+Private (for-profit)
+Nonprofit/NGO
+Intergovernmental/Multilateral
