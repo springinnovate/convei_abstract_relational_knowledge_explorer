@@ -1,5 +1,27 @@
 from __future__ import annotations
 
+"""
+Compute per-year base-topic distributions for publications stored in a SQLite database.
+
+This script queries a ResearchGate-derived SQLite database containing publications, base topics,
+and per-publication distances (semantic similarities) to base topics. For each publication in a
+given year, it computes a temperature-scaled softmax distribution over that publication's base
+topics (optionally reweighted by the publication's similarity to a chosen base topic), then
+sums those distributions across all publications in the year to form a year-level topic vector.
+
+The script can compute vectors across a year range and write a CSV matrix with one row per base
+topic and one column per year.
+
+Typical usage:
+    python script.py --db path/to/db.sqlite --start-year 2015 --end-year 2020 \
+        --short-name-weighted-topic "machine_learning" --csv out.csv
+
+Notes:
+    - Uses SQLite WAL mode and a busy timeout for better concurrency behavior.
+    - Assumes the schema defined by models.BaseTopics, models.Publication, and
+      models.BaseTopicToPublicationDistance.
+"""
+
 import argparse
 import csv
 
@@ -21,6 +43,14 @@ engine = create_engine(
 
 @event.listens_for(engine, "connect")
 def _set_sqlite_pragma(dbapi_connection, _):
+    """Configure SQLite connection pragmas for performance and reliability.
+
+    Sets WAL journal mode, normal synchronous mode, and a busy timeout to reduce lock errors.
+
+    Args:
+        dbapi_connection: A DB-API connection object provided by SQLAlchemy.
+        _: Unused connection record parameter provided by SQLAlchemy event hook.
+    """
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA journal_mode=WAL")
     cursor.execute("PRAGMA synchronous=NORMAL")
@@ -29,6 +59,22 @@ def _set_sqlite_pragma(dbapi_connection, _):
 
 
 def _load_base_topics(session: Session):
+    """Load base topics and build lookup structures.
+
+    Queries all base topics ordered by ID and returns:
+      - a dense NumPy array of base topic IDs
+      - a mapping from base topic ID to short text name
+      - a mapping from base topic ID to its index in the dense array
+
+    Args:
+        session: An active SQLAlchemy session.
+
+    Returns:
+        tuple:
+            base_topic_ids: NumPy array of base topic IDs (int64), ordered by ID.
+            base_topic_text_by_id: Dict mapping base topic ID (int) -> short name (str).
+            base_topic_index_by_id: Dict mapping base topic ID (int) -> index (int).
+    """
     rows = session.execute(
         select(BaseTopics.id, BaseTopics.short_name).order_by(BaseTopics.id)
     ).all()
@@ -45,6 +91,27 @@ def year_vector(
     year: int,
     weighted_short_name: str,
 ):
+    """Compute a year-level base-topic vector by aggregating publication-level softmax weights.
+
+    For each publication in the specified year, this function:
+      1) collects (base_topic_id, semantic_similarity) pairs
+      2) finds the publication's similarity for `weighted_short_name` (if present) and uses it
+         as a multiplicative factor on all topic scores for that publication
+      3) applies temperature-scaled softmax to the per-publication scores
+      4) accumulates the resulting weights into a year-level vector over base topics
+
+    Args:
+        session: An active SQLAlchemy session.
+        year: Publication year to aggregate.
+        weighted_short_name: Base topic short name whose semantic similarity (per publication)
+            is used as a multiplicative weight for that publication's scores.
+
+    Returns:
+        tuple:
+            base_topic_ids_all: NumPy array of all base topic IDs (int64), ordered by ID.
+            base_topic_text_by_id: Dict mapping base topic ID (int) -> short name (str).
+            year_topic_vector: NumPy array (float64) with summed softmax weights per base topic.
+    """
     print(f"[year_vector] start year={year} weighted_short_name={weighted_short_name}")
 
     (
@@ -95,6 +162,14 @@ def year_vector(
     row_counter = 0
 
     def flush():
+        """Flush accumulated rows for the current publication into the year vector.
+
+        Computes the per-publication softmax distribution over base topics (after optional
+        weighting and temperature scaling) and adds it to `year_topic_vector`.
+
+        Returns:
+            None
+        """
         nonlocal publication_counter
 
         if not publication_scores:
@@ -161,6 +236,18 @@ def year_vector(
 
 
 def topk(base_topic_ids, base_topic_text_by_id, year_topic_vector, k: int):
+    """Return the top-k base topics by value in a year topic vector.
+
+    Args:
+        base_topic_ids: NumPy array of base topic IDs aligned with `year_topic_vector`.
+        base_topic_text_by_id: Dict mapping base topic ID (int) -> short name (str).
+        year_topic_vector: NumPy array of topic weights (float64).
+        k: Number of top topics to return.
+
+    Returns:
+        list[tuple[int, str, float]]: Tuples of (base_topic_id, base_topic_text, value),
+        sorted by descending value.
+    """
     sorted_indices = np.argsort(year_topic_vector)[::-1]
     topk_rows = []
     for index in sorted_indices[:k]:
@@ -176,6 +263,19 @@ def topk(base_topic_ids, base_topic_text_by_id, year_topic_vector, k: int):
 
 
 def write_csv(path: str, base_topic_ids, base_topic_text_by_id, year_topic_vector):
+    """Write a year topic vector to a CSV file.
+
+    The CSV contains one row per base topic with the summed weight for the year.
+
+    Args:
+        path: Output CSV file path.
+        base_topic_ids: NumPy array of base topic IDs aligned with `year_topic_vector`.
+        base_topic_text_by_id: Dict mapping base topic ID (int) -> short name (str).
+        year_topic_vector: NumPy array of topic weights (float64).
+
+    Returns:
+        None
+    """
     with open(path, "w", newline="") as file:
         csv_writer = csv.writer(file)
         csv_writer.writerow(
@@ -192,6 +292,15 @@ def write_csv(path: str, base_topic_ids, base_topic_text_by_id, year_topic_vecto
 
 
 def main():
+    """Entry point for CLI execution.
+
+    Parses arguments, computes year topic vectors for the requested year range, writes a CSV
+    matrix (base_topic_id, base_topic_text, per-year columns), and prints per-year topic rows
+    to stdout.
+
+    Returns:
+        None
+    """
     argument_parser = argparse.ArgumentParser()
     argument_parser.add_argument("--db", default=DB_PATH)
     argument_parser.add_argument("--start-year", type=int, required=True)
