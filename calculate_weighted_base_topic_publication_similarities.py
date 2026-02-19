@@ -9,7 +9,7 @@ from models import BaseTopics, BaseTopicToPublicationDistance, Publication
 
 DB_PATH = "sqlite:///2025_11_09_researchgate.sqlite"
 WEIGHTED_TOPIC_TEXT = "Satellites that Observe and Image the Earth's Surface"
-N = 100
+N = 10
 
 max_workers = min(32, (os.cpu_count() or 4) * 2)
 
@@ -23,7 +23,10 @@ SessionLocal = sessionmaker(bind=engine)
 
 
 def top_n_for_base_topic(
-    topic_id: int, base_topic_text: str, weight_topic_id: int
+    topic_id: int,
+    base_topic_text: str,
+    base_topic_short_name: str,
+    weight_topic_id: int,
 ) -> pd.DataFrame:
     D = BaseTopicToPublicationDistance
     W = aliased(BaseTopicToPublicationDistance)
@@ -61,7 +64,7 @@ def top_n_for_base_topic(
         rows,
         columns=["title", "abstract", "sim", "weight_sim", "weighted_topic"],
     )
-    df.insert(0, "base_topic", base_topic_text)
+    df.insert(0, "base_topic", base_topic_short_name)
     return df[
         [
             "base_topic",
@@ -80,14 +83,22 @@ with SessionLocal() as session:
     ).scalar_one()
 
     base_topics = session.execute(
-        select(BaseTopics.id, BaseTopics.text).where(BaseTopics.id != weight_topic_id)
+        select(BaseTopics.id, BaseTopics.text, BaseTopics.short_name).where(
+            BaseTopics.id != weight_topic_id
+        )
     ).all()
 
 dfs = []
 with ThreadPoolExecutor(max_workers=max_workers) as ex:
     futures = [
-        ex.submit(top_n_for_base_topic, topic_id, topic_text, weight_topic_id)
-        for topic_id, topic_text in base_topics
+        ex.submit(
+            top_n_for_base_topic,
+            topic_id,
+            topic_text,
+            topic_short_name,
+            weight_topic_id,
+        )
+        for topic_id, topic_text, topic_short_name in base_topics
     ]
     for fut in as_completed(futures):
         dfs.append(fut.result())
