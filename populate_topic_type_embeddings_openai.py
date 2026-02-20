@@ -2,22 +2,24 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import array
+
 from openai import OpenAI
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
-from models import BaseTopics, Base
+from models import AffiliationType, Base
 
 DB_PATH = "2025_11_09_researchgate.sqlite"
 EMBEDDING_MODEL = "text-embedding-3-small"
 BATCH_SIZE = 128
 
-topics = [
-    "Academic (universities, colleges)",
-    "Government (ministries, agencies, national labs)",
-    "Private (for-profit)",
-    "Nonprofit/NGO",
-    "Intergovernmental/Multilateral",
+affiliation_types = [
+    ("academic", "Academic (universities, colleges)"),
+    ("government", "Government (ministries, agencies, national labs)"),
+    ("private", "Private (for-profit)"),
+    ("nonprofit", "Nonprofit/NGO"),
+    ("intergovernmental", "Intergovernmental/Multilateral"),
 ]
 
 
@@ -31,13 +33,17 @@ def main():
     engine = create_engine(f"sqlite:///{DB_PATH}", future=True)
     Base.metadata.create_all(engine)
 
-    rows = [(t.split(" ", 1)[0].rstrip(")").lstrip("("), t) for t in topics]
+    rows = affiliation_types
 
     with Session(engine) as session:
-        existing_texts = set(session.scalars(select(BaseTopics.text)).all())
+        existing_texts = set(
+            session.scalars(select(AffiliationType.text)).all()
+        )
         missing_emb_texts = set(
             session.scalars(
-                select(BaseTopics.text).where(BaseTopics.embedding.is_(None))
+                select(AffiliationType.text).where(
+                    AffiliationType.embedding.is_(None)
+                )
             ).all()
         )
 
@@ -54,19 +60,21 @@ def main():
             embeddings.extend([d.embedding for d in r.data])
 
         for (sn, tx), v in zip(to_add, embeddings, strict=True):
-            b = memoryview(bytearray()).tobytes()
-
-            import array
-
-            a = array.array("f", v)
-            b = a.tobytes()
+            b = array.array("f", v).tobytes()
 
             if tx in existing_texts:
-                session.query(BaseTopics).filter(BaseTopics.text == tx).update(
-                    {BaseTopics.embedding: b, BaseTopics.short_name: sn}
+                session.query(AffiliationType).filter(
+                    AffiliationType.text == tx
+                ).update(
+                    {
+                        AffiliationType.embedding: b,
+                        AffiliationType.short_name: sn,
+                    }
                 )
             else:
-                session.add(BaseTopics(short_name=sn, text=tx, embedding=b))
+                session.add(
+                    AffiliationType(short_name=sn, text=tx, embedding=b)
+                )
 
         session.commit()
 
