@@ -42,9 +42,7 @@ class Publication(Base):
     satellite_type: Mapped[str | None] = mapped_column(Text)
     type_evidence: Mapped[str | None] = mapped_column(Text)
 
-    abstract_embedding: Mapped[bytes | None] = mapped_column(
-        LargeBinary, nullable=True
-    )
+    abstract_embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
     raw_topics: Mapped[list["RawTopics"]] = relationship(
         secondary="raw_topic_to_pub",
@@ -52,18 +50,22 @@ class Publication(Base):
         lazy="selectin",
     )
 
-    base_topic_distances: Mapped[list["BaseTopicToPublicationDistance"]] = (
-        relationship(
-            back_populates="publication",
-            cascade="all, delete-orphan",
-            lazy="selectin",
-        )
+    base_topic_distances: Mapped[list["BaseTopicToPublicationDistance"]] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    affiliation_type_distances: Mapped[
+        list["AffiliationTypeToPublicationDistance"]
+    ] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     __table_args__ = (
-        Index(
-            "ix_publications_year_type", "publication_year", "published_in_type"
-        ),
+        Index("ix_publications_year_type", "publication_year", "published_in_type"),
     )
 
 
@@ -72,9 +74,7 @@ class RawTopics(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     topic: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    count: Mapped[int] = mapped_column(
-        Integer, nullable=True, primary_key=False
-    )
+    count: Mapped[int] = mapped_column(Integer, nullable=True, primary_key=False)
     embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     include_in_analysis: Mapped[bool] = mapped_column(
         Boolean,
@@ -114,12 +114,12 @@ class BaseTopics(Base):
     short_name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     text: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
-    publication_distances: Mapped[list["BaseTopicToPublicationDistance"]] = (
-        relationship(
-            back_populates="base_topic",
-            cascade="all, delete-orphan",
-            lazy="selectin",
-        )
+    publication_distances: Mapped[
+        list["BaseTopicToPublicationDistance"]
+    ] = relationship(
+        back_populates="base_topic",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
 
