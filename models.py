@@ -56,6 +56,14 @@ class Publication(Base):
         lazy="selectin",
     )
 
+    affiliation_type_distances: Mapped[
+        list["AffiliationTypeToPublicationDistance"]
+    ] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
     __table_args__ = (
         Index("ix_publications_year_type", "publication_year", "published_in_type"),
     )
@@ -153,5 +161,66 @@ class BaseTopicToPublicationDistance(Base):
             "publication_id",
             "semantic_similarity",
             "base_topic_id",
+        ),
+    )
+
+
+class AffiliationType(Base):
+    __tablename__ = "affiliation_types"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    short_name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+
+    publication_distances: Mapped[
+        list["AffiliationTypeToPublicationDistance"]
+    ] = relationship(
+        back_populates="affiliation_type",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+
+class AffiliationTypeToPublicationDistance(Base):
+    __tablename__ = "affiliation_type_to_pub_distance"
+
+    affiliation_type_id: Mapped[int] = mapped_column(
+        ForeignKey("affiliation_types.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    publication_id: Mapped[int] = mapped_column(
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    semantic_similarity: Mapped[float] = mapped_column(Float, nullable=False)
+
+    affiliation_type: Mapped["AffiliationType"] = relationship(
+        back_populates="publication_distances",
+        lazy="selectin",
+    )
+    publication: Mapped["Publication"] = relationship(
+        back_populates="affiliation_type_distances",
+        lazy="selectin",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "affiliation_type_id",
+            "publication_id",
+            name="uq_affiliation_type_pub_distance",
+        ),
+        Index(
+            "ix_affiliation_type_pub_distance_at",
+            "affiliation_type_id",
+            "semantic_similarity",
+            "publication_id",
+        ),
+        Index(
+            "ix_affiliation_type_pub_distance_pub",
+            "publication_id",
+            "semantic_similarity",
+            "affiliation_type_id",
         ),
     )
