@@ -64,6 +64,22 @@ class Publication(Base):
         lazy="selectin",
     )
 
+    affiliation_type_distances: Mapped[
+        list["AffiliationTypeToPublicationDistance"]
+    ] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    primary_author_locations: Mapped[
+        list["PublicationPrimaryAuthorLocation"]
+    ] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
     __table_args__ = (
         Index("ix_publications_year_type", "publication_year", "published_in_type"),
     )
@@ -223,4 +239,43 @@ class AffiliationTypeToPublicationDistance(Base):
             "semantic_similarity",
             "affiliation_type_id",
         ),
+    )
+
+
+class Location(Base):
+    __tablename__ = "locations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    type: Mapped[str] = mapped_column(String(32), nullable=False)
+    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+
+    publication_primary_author_locations: Mapped[
+        list["PublicationPrimaryAuthorLocation"]
+    ] = relationship(
+        back_populates="location",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+
+class PublicationPrimaryAuthorLocation(Base):
+    __tablename__ = "publication_primary_author_locations"
+
+    publication_id: Mapped[int] = mapped_column(
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    location_id: Mapped[int] = mapped_column(
+        ForeignKey("locations.id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+
+    publication: Mapped["Publication"] = relationship(
+        back_populates="primary_author_locations",
+        lazy="selectin",
+    )
+    location: Mapped["Location"] = relationship(
+        back_populates="publication_primary_author_locations",
+        lazy="selectin",
     )
