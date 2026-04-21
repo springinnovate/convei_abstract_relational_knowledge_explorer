@@ -18,6 +18,46 @@ class Base(DeclarativeBase):
     pass
 
 
+class PublicationToSatellite(Base):
+    __tablename__ = "publication_to_satellite"
+
+    publication_id: Mapped[int] = mapped_column(
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    satellite_id: Mapped[int] = mapped_column(
+        ForeignKey("satellite_type.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    publication: Mapped["Publication"] = relationship(
+        back_populates="publication_satellites"
+    )
+    satellite: Mapped["Satellite"] = relationship(
+        back_populates="publication_satellites"
+    )
+
+
+class PublicationToDataType(Base):
+    __tablename__ = "publication_to_data_type"
+
+    publication_id: Mapped[int] = mapped_column(
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    data_type_id: Mapped[int] = mapped_column(
+        ForeignKey("data_type.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    publication: Mapped["Publication"] = relationship(
+        back_populates="publication_data_types"
+    )
+    data_type: Mapped["DataType"] = relationship(
+        back_populates="publication_data_types"
+    )
+
+
 class Publication(Base):
     __tablename__ = "publications"
 
@@ -42,7 +82,9 @@ class Publication(Base):
     satellite_type: Mapped[str | None] = mapped_column(Text)
     type_evidence: Mapped[str | None] = mapped_column(Text)
 
-    abstract_embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    abstract_embedding: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True
+    )
 
     raw_topics: Mapped[list["RawTopics"]] = relationship(
         secondary="raw_topic_to_pub",
@@ -50,18 +92,12 @@ class Publication(Base):
         lazy="selectin",
     )
 
-    base_topic_distances: Mapped[list["BaseTopicToPublicationDistance"]] = relationship(
-        back_populates="publication",
-        cascade="all, delete-orphan",
-        lazy="selectin",
-    )
-
-    affiliation_type_distances: Mapped[
-        list["AffiliationTypeToPublicationDistance"]
-    ] = relationship(
-        back_populates="publication",
-        cascade="all, delete-orphan",
-        lazy="selectin",
+    base_topic_distances: Mapped[list["BaseTopicToPublicationDistance"]] = (
+        relationship(
+            back_populates="publication",
+            cascade="all, delete-orphan",
+            lazy="selectin",
+        )
     )
 
     affiliation_type_distances: Mapped[
@@ -80,8 +116,80 @@ class Publication(Base):
         lazy="selectin",
     )
 
+    publication_satellites: Mapped[list["PublicationToSatellite"]] = (
+        relationship(
+            back_populates="publication",
+            cascade="all, delete-orphan",
+            lazy="selectin",
+        )
+    )
+    satellites: Mapped[list["Satellite"]] = relationship(
+        secondary="publication_to_satellite",
+        back_populates="publications",
+        lazy="selectin",
+        viewonly=True,
+    )
+
+    publication_data_types: Mapped[list["PublicationToDataType"]] = (
+        relationship(
+            back_populates="publication",
+            cascade="all, delete-orphan",
+            lazy="selectin",
+        )
+    )
+    data_types: Mapped[list["DataType"]] = relationship(
+        secondary="publication_to_data_type",
+        back_populates="publications",
+        lazy="selectin",
+        viewonly=True,
+    )
+
     __table_args__ = (
-        Index("ix_publications_year_type", "publication_year", "published_in_type"),
+        Index(
+            "ix_publications_year_type", "publication_year", "published_in_type"
+        ),
+    )
+
+
+class Satellite(Base):
+    __tablename__ = "satellite_type"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+
+    publication_satellites: Mapped[list["PublicationToSatellite"]] = (
+        relationship(
+            back_populates="satellite",
+            cascade="all, delete-orphan",
+            lazy="selectin",
+        )
+    )
+    publications: Mapped[list["Publication"]] = relationship(
+        secondary="publication_to_satellite",
+        back_populates="satellites",
+        lazy="selectin",
+        viewonly=True,
+    )
+
+
+class DataType(Base):
+    __tablename__ = "data_type"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+
+    publication_data_types: Mapped[list["PublicationToDataType"]] = (
+        relationship(
+            back_populates="data_type",
+            cascade="all, delete-orphan",
+            lazy="selectin",
+        )
+    )
+    publications: Mapped[list["Publication"]] = relationship(
+        secondary="publication_to_data_type",
+        back_populates="data_types",
+        lazy="selectin",
+        viewonly=True,
     )
 
 
@@ -90,7 +198,9 @@ class RawTopics(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     topic: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    count: Mapped[int] = mapped_column(Integer, nullable=True, primary_key=False)
+    count: Mapped[int] = mapped_column(
+        Integer, nullable=True, primary_key=False
+    )
     embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     include_in_analysis: Mapped[bool] = mapped_column(
         Boolean,
@@ -130,12 +240,12 @@ class BaseTopics(Base):
     short_name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     text: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
-    publication_distances: Mapped[
-        list["BaseTopicToPublicationDistance"]
-    ] = relationship(
-        back_populates="base_topic",
-        cascade="all, delete-orphan",
-        lazy="selectin",
+    publication_distances: Mapped[list["BaseTopicToPublicationDistance"]] = (
+        relationship(
+            back_populates="base_topic",
+            cascade="all, delete-orphan",
+            lazy="selectin",
+        )
     )
 
 
