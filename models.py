@@ -86,12 +86,6 @@ class Publication(Base):
         LargeBinary, nullable=True
     )
 
-    raw_topics: Mapped[list["RawTopics"]] = relationship(
-        secondary="raw_topic_to_pub",
-        back_populates="publications",
-        lazy="selectin",
-    )
-
     base_topic_distances: Mapped[list["BaseTopicToPublicationDistance"]] = (
         relationship(
             back_populates="publication",
@@ -190,46 +184,6 @@ class DataType(Base):
         back_populates="data_types",
         lazy="selectin",
         viewonly=True,
-    )
-
-
-class RawTopics(Base):
-    __tablename__ = "raw_topics"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    topic: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    count: Mapped[int] = mapped_column(
-        Integer, nullable=True, primary_key=False
-    )
-    embedding: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
-    include_in_analysis: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=True,
-    )
-
-    publications: Mapped[list["Publication"]] = relationship(
-        secondary="raw_topic_to_pub",
-        back_populates="raw_topics",
-        lazy="selectin",
-    )
-
-
-class RawTopicToPublication(Base):
-    __tablename__ = "raw_topic_to_pub"
-
-    topic_id: Mapped[int] = mapped_column(
-        ForeignKey("raw_topics.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    publication_id: Mapped[int] = mapped_column(
-        ForeignKey("publications.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-    __table_args__ = (
-        UniqueConstraint("topic_id", "publication_id", name="uq_raw_topic_pub"),
-        Index("ix_raw_topic_pub_pub_id", "publication_id", "topic_id"),
-        Index("ix_raw_topic_pub_topic_id", "topic_id", "publication_id"),
     )
 
 
