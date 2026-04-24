@@ -265,6 +265,13 @@ class AffiliationType(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    author_affiliation_distances: Mapped[
+        list["PublicationAuthorLocationAffiliationTypeDistance"]
+    ] = relationship(
+        back_populates="affiliation_type",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
 
 class AffiliationTypeToPublicationDistance(Base):
@@ -307,6 +314,49 @@ class AffiliationTypeToPublicationDistance(Base):
             "publication_id",
             "semantic_similarity",
             "affiliation_type_id",
+        ),
+    )
+
+
+class PublicationAuthorLocationAffiliationTypeDistance(Base):
+    __tablename__ = "publication_author_location_to_affiliation_type_distance"
+
+    publication_author_location_id: Mapped[int] = mapped_column(
+        ForeignKey("publication_author_locations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    affiliation_type_id: Mapped[int] = mapped_column(
+        ForeignKey("affiliation_types.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    semantic_similarity: Mapped[float] = mapped_column(Float, nullable=False)
+
+    publication_author_location: Mapped["PublicationAuthorLocation"] = relationship(
+        back_populates="affiliation_type_distances",
+        lazy="selectin",
+    )
+    affiliation_type: Mapped["AffiliationType"] = relationship(
+        back_populates="author_affiliation_distances",
+        lazy="selectin",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "publication_author_location_id",
+            "affiliation_type_id",
+            name="uq_author_location_affiliation_type_distance",
+        ),
+        Index(
+            "ix_author_location_affiliation_type_distance_loc",
+            "publication_author_location_id",
+            "semantic_similarity",
+            "affiliation_type_id",
+        ),
+        Index(
+            "ix_author_location_affiliation_type_distance_type",
+            "affiliation_type_id",
+            "semantic_similarity",
+            "publication_author_location_id",
         ),
     )
 
@@ -383,6 +433,13 @@ class PublicationAuthorLocation(Base):
     )
     location: Mapped["Location"] = relationship(
         back_populates="publication_author_locations",
+        lazy="selectin",
+    )
+    affiliation_type_distances: Mapped[
+        list["PublicationAuthorLocationAffiliationTypeDistance"]
+    ] = relationship(
+        back_populates="publication_author_location",
+        cascade="all, delete-orphan",
         lazy="selectin",
     )
 
