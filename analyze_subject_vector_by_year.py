@@ -24,6 +24,7 @@ Notes:
 
 import argparse
 import csv
+from pathlib import Path
 
 import numpy as np
 from sqlalchemy import create_engine, event, select
@@ -291,6 +292,41 @@ def write_csv(path: str, base_topic_ids, base_topic_text_by_id, year_topic_vecto
             )
 
 
+def default_normalized_csv_path(path: str) -> str:
+    csv_path = Path(path)
+    return str(csv_path.with_name(f"{csv_path.stem}_normalized{csv_path.suffix}"))
+
+
+def normalize_year_columns(year_topic_matrix: np.ndarray) -> np.ndarray:
+    column_sums = year_topic_matrix.sum(axis=0)
+    normalized = np.zeros_like(year_topic_matrix)
+    nonzero_columns = column_sums != 0.0
+    normalized[:, nonzero_columns] = (
+        year_topic_matrix[:, nonzero_columns] / column_sums[nonzero_columns]
+    )
+    return normalized
+
+
+def write_year_matrix_csv(
+    path: str,
+    base_topic_ids,
+    base_topic_text_by_id,
+    years: list[int],
+    year_topic_matrix: np.ndarray,
+) -> None:
+    with open(path, "w", newline="") as file:
+        csv_writer = csv.writer(file)
+        csv_writer.writerow(["base_topic_id", "base_topic_text", *years])
+        for base_topic_index, base_topic_id in enumerate(base_topic_ids):
+            csv_writer.writerow(
+                [
+                    int(base_topic_id),
+                    base_topic_text_by_id[int(base_topic_id)],
+                    *year_topic_matrix[base_topic_index, :].tolist(),
+                ]
+            )
+
+
 def main():
     """Entry point for CLI execution.
 
@@ -307,6 +343,7 @@ def main():
     argument_parser.add_argument("--end-year", type=int, required=True)
     argument_parser.add_argument("--short-name-weighted-topic", type=str, required=True)
     argument_parser.add_argument("--csv", default=None)
+    argument_parser.add_argument("--normalized-csv", default=None)
     args = argument_parser.parse_args()
 
     engine = create_engine(
@@ -340,17 +377,24 @@ def main():
             )
             year_topic_matrix[:, year_index] = year_topic_vector
 
-        with open(args.csv, "w", newline="") as file:
-            csv_writer = csv.writer(file)
-            csv_writer.writerow(["base_topic_id", "base_topic_text", *years])
-            for base_topic_index, base_topic_id in enumerate(base_topic_ids):
-                csv_writer.writerow(
-                    [
-                        int(base_topic_id),
-                        base_topic_text_by_id[int(base_topic_id)],
-                        *year_topic_matrix[base_topic_index, :].tolist(),
-                    ]
-                )
+        write_year_matrix_csv(
+            args.csv,
+            base_topic_ids,
+            base_topic_text_by_id,
+            years,
+            year_topic_matrix,
+        )
+
+        normalized_csv = args.normalized_csv or default_normalized_csv_path(
+            args.csv
+        )
+        write_year_matrix_csv(
+            normalized_csv,
+            base_topic_ids,
+            base_topic_text_by_id,
+            years,
+            normalize_year_columns(year_topic_matrix),
+        )
 
         for year_index, year_value in enumerate(years):
             year_topic_vector = year_topic_matrix[:, year_index]
