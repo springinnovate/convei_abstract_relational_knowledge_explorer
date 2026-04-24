@@ -101,6 +101,13 @@ class Publication(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    parsed_author_affiliations: Mapped[
+        list["PublicationAuthorAffiliation"]
+    ] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     primary_author_locations: Mapped[
         list["PublicationPrimaryAuthorLocation"]
@@ -260,6 +267,13 @@ class AffiliationType(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    author_affiliation_distances: Mapped[
+        list["PublicationAuthorAffiliationTypeDistance"]
+    ] = relationship(
+        back_populates="affiliation_type",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
 
 class AffiliationTypeToPublicationDistance(Base):
@@ -302,6 +316,97 @@ class AffiliationTypeToPublicationDistance(Base):
             "publication_id",
             "semantic_similarity",
             "affiliation_type_id",
+        ),
+    )
+
+
+class PublicationAuthorAffiliation(Base):
+    __tablename__ = "publication_author_affiliations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    publication_id: Mapped[int] = mapped_column(
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    author_name: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    author_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    raw_author_group: Mapped[str] = mapped_column(
+        Text, nullable=False, default=""
+    )
+    affiliation_text: Mapped[str] = mapped_column(Text, nullable=False)
+    affiliation_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    affiliation_embedding: Mapped[bytes | None] = mapped_column(
+        LargeBinary, nullable=True
+    )
+
+    publication: Mapped["Publication"] = relationship(
+        back_populates="parsed_author_affiliations",
+        lazy="selectin",
+    )
+    type_distances: Mapped[list["PublicationAuthorAffiliationTypeDistance"]] = (
+        relationship(
+            back_populates="author_affiliation",
+            cascade="all, delete-orphan",
+            lazy="selectin",
+        )
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "publication_id",
+            "author_name",
+            "affiliation_index",
+            "affiliation_text",
+            name="uq_publication_author_affiliation",
+        ),
+        Index(
+            "ix_publication_author_affiliation_pub",
+            "publication_id",
+            "author_name",
+            "affiliation_index",
+        ),
+    )
+
+
+class PublicationAuthorAffiliationTypeDistance(Base):
+    __tablename__ = "publication_author_affiliation_type_distance"
+
+    author_affiliation_id: Mapped[int] = mapped_column(
+        ForeignKey("publication_author_affiliations.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    affiliation_type_id: Mapped[int] = mapped_column(
+        ForeignKey("affiliation_types.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    semantic_similarity: Mapped[float] = mapped_column(Float, nullable=False)
+
+    author_affiliation: Mapped["PublicationAuthorAffiliation"] = relationship(
+        back_populates="type_distances",
+        lazy="selectin",
+    )
+    affiliation_type: Mapped["AffiliationType"] = relationship(
+        back_populates="author_affiliation_distances",
+        lazy="selectin",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "author_affiliation_id",
+            "affiliation_type_id",
+            name="uq_author_affiliation_type_distance",
+        ),
+        Index(
+            "ix_author_affiliation_type_distance_aff",
+            "author_affiliation_id",
+            "semantic_similarity",
+            "affiliation_type_id",
+        ),
+        Index(
+            "ix_author_affiliation_type_distance_type",
+            "affiliation_type_id",
+            "semantic_similarity",
+            "author_affiliation_id",
         ),
     )
 
