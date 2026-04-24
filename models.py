@@ -109,6 +109,11 @@ class Publication(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    study_locations: Mapped[list["PublicationStudyLocation"]] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
     author_locations: Mapped[list["PublicationAuthorLocation"]] = relationship(
         back_populates="publication",
         cascade="all, delete-orphan",
@@ -376,6 +381,13 @@ class Location(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    publication_study_locations: Mapped[list["PublicationStudyLocation"]] = (
+        relationship(
+            back_populates="location",
+            cascade="all, delete-orphan",
+            lazy="selectin",
+        )
+    )
     publication_author_locations: Mapped[list["PublicationAuthorLocation"]] = (
         relationship(
             back_populates="location",
@@ -404,6 +416,50 @@ class PublicationPrimaryAuthorLocation(Base):
     location: Mapped["Location"] = relationship(
         back_populates="publication_primary_author_locations",
         lazy="selectin",
+    )
+
+
+class PublicationStudyLocation(Base):
+    __tablename__ = "publication_study_locations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    publication_id: Mapped[int] = mapped_column(
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    location_id: Mapped[int] = mapped_column(
+        ForeignKey("locations.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    matched_text: Mapped[str] = mapped_column(Text, nullable=False)
+    match_method: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    publication: Mapped["Publication"] = relationship(
+        back_populates="study_locations",
+        lazy="selectin",
+    )
+    location: Mapped["Location"] = relationship(
+        back_populates="publication_study_locations",
+        lazy="selectin",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "publication_id",
+            "location_id",
+            "matched_text",
+            name="uq_publication_study_location",
+        ),
+        Index(
+            "ix_publication_study_location_pub",
+            "publication_id",
+            "location_id",
+        ),
+        Index(
+            "ix_publication_study_location_loc",
+            "location_id",
+            "publication_id",
+        ),
     )
 
 
