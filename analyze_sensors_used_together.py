@@ -3,13 +3,13 @@ import csv
 import logging
 
 from tqdm import tqdm
-from sqlalchemy import create_engine, event, select
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, event, select, func, and_
+from sqlalchemy.orm import Session, aliased
 
 from models import (
     Base,
     DataType,
-    Publication,
+    PublicationToDataType,
 )
 
 
@@ -39,6 +39,9 @@ Base.metadata.create_all(engine)
 timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 output_path = f"data_type_pair_counts_{timestamp}.csv"
 
+ptd1 = aliased(PublicationToDataType)
+ptd2 = aliased(PublicationToDataType)
+
 with Session(engine) as session:
     logging.info("loading data types")
     data_types = session.execute(
@@ -46,29 +49,26 @@ with Session(engine) as session:
     ).all()
     logging.info("loaded %d data types", len(data_types))
 
-    logging.info("loading publications")
-    publications = session.execute(
-        select(Publication.id, Publication.abstract)
-        .where(Publication.abstract.is_not(None))
-        .order_by(Publication.id)
-    ).all()
-    logging.info("loaded %d publications with abstracts", len(publications))
+    logging.info("querying co-occurrence counts")
+    count_rows = session.execute(
+        select(
+            ptd1.data_type_id,
+            ptd2.data_type_id,
+            func.count(func.distinct(ptd1.publication_id)),
+        )
+        .join(
+            ptd2,
+            and_(
+                ptd1.publication_id == ptd2.publication_id,
+                ptd1.data_type_id <= ptd2.data_type_id,
+            ),
+        )
+        .group_by(ptd1.data_type_id, ptd2.data_type_id)
+    )
 
     counts = {}
-    for _, abstract in tqdm(publications, desc="Counting data type pairs"):
-        abstract_cf = abstract.casefold()
-        matched_data_types = [
-            (data_type_id, data_type_name)
-            for data_type_id, data_type_name in data_types
-            if data_type_name.casefold() in abstract_cf
-        ]
-
-        for i, (left_id, _) in enumerate(matched_data_types):
-            for right_id, _ in matched_data_types[i:]:
-                counts[(left_id, right_id)] = (
-                    counts.get((left_id, right_id), 0) + 1
-                )
-
+    for row in tqdm(count_rows, desc="Loading pair counts"):
+        counts[(row[0], row[1])] = row[2]
     logging.info("loaded %d data type pairs with co-occurrences", len(counts))
 
     logging.info("writing csv to %s", output_path)
