@@ -3,13 +3,13 @@ import csv
 import logging
 
 from tqdm import tqdm
-from sqlalchemy import create_engine, event, select, func, and_
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy import create_engine, event, select
+from sqlalchemy.orm import Session
 
 from models import (
     Base,
-    Satellite,
-    PublicationToSatellite,
+    DataType,
+    Publication,
 )
 
 
@@ -37,58 +37,54 @@ event.listen(engine, "connect", _set_sqlite_pragma)
 Base.metadata.create_all(engine)
 
 timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-output_path = f"satellite_pair_counts_{timestamp}.csv"
-
-pts1 = aliased(PublicationToSatellite)
-pts2 = aliased(PublicationToSatellite)
+output_path = f"data_type_pair_counts_{timestamp}.csv"
 
 with Session(engine) as session:
-    logging.info("loading satellites")
-    satellites = session.execute(
-        select(Satellite.id, Satellite.name).order_by(Satellite.name)
+    logging.info("loading data types")
+    data_types = session.execute(
+        select(DataType.id, DataType.name).order_by(DataType.name)
     ).all()
-    logging.info("loaded %d satellites", len(satellites))
+    logging.info("loaded %d data types", len(data_types))
 
-    logging.info("querying co-occurrence counts")
-    count_rows = session.execute(
-        select(
-            pts1.satellite_id,
-            pts2.satellite_id,
-            func.count(func.distinct(pts1.publication_id)),
-        )
-        .join(
-            pts2,
-            and_(
-                pts1.publication_id == pts2.publication_id,
-                pts1.satellite_id <= pts2.satellite_id,
-            ),
-        )
-        .group_by(pts1.satellite_id, pts2.satellite_id)
-    )
+    logging.info("loading publications")
+    publications = session.execute(
+        select(Publication.id, Publication.abstract)
+        .where(Publication.abstract.is_not(None))
+        .order_by(Publication.id)
+    ).all()
+    logging.info("loaded %d publications with abstracts", len(publications))
 
     counts = {}
-    for row in tqdm(count_rows, desc="Loading pair counts"):
-        counts[(row[0], row[1])] = row[2]
-    logging.info("loaded %d satellite pairs with co-occurrences", len(counts))
+    for _, abstract in tqdm(publications, desc="Counting data type pairs"):
+        abstract_cf = abstract.casefold()
+        matched_data_types = [
+            (data_type_id, data_type_name)
+            for data_type_id, data_type_name in data_types
+            if data_type_name.casefold() in abstract_cf
+        ]
+
+        for i, (left_id, _) in enumerate(matched_data_types):
+            for right_id, _ in matched_data_types[i:]:
+                counts[(left_id, right_id)] = (
+                    counts.get((left_id, right_id), 0) + 1
+                )
+
+    logging.info("loaded %d data type pairs with co-occurrences", len(counts))
 
     logging.info("writing csv to %s", output_path)
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(
-            ["satellite"] + [satellite.name for satellite in satellites]
-        )
+        writer.writerow(["data_type"] + [name for _, name in data_types])
 
-        for i, satellite_row in enumerate(
-            tqdm(satellites, desc="Writing matrix rows")
+        for i, (row_id, row_name) in enumerate(
+            tqdm(data_types, desc="Writing matrix rows")
         ):
-            row = [satellite_row.name]
-            for j, satellite_col in enumerate(satellites):
+            row = [row_name]
+            for j, (col_id, _) in enumerate(data_types):
                 if j < i:
                     row.append("")
                 else:
-                    row.append(
-                        counts.get((satellite_row.id, satellite_col.id), 0)
-                    )
+                    row.append(counts.get((row_id, col_id), 0))
             writer.writerow(row)
 
 logging.info("wrote %s", output_path)
