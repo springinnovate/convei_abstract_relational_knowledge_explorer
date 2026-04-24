@@ -116,6 +116,11 @@ class Publication(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    author_locations: Mapped[list["PublicationAuthorLocation"]] = relationship(
+        back_populates="publication",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     publication_satellites: Mapped[list["PublicationToSatellite"]] = (
         relationship(
@@ -426,6 +431,13 @@ class Location(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    publication_author_locations: Mapped[list["PublicationAuthorLocation"]] = (
+        relationship(
+            back_populates="location",
+            cascade="all, delete-orphan",
+            lazy="selectin",
+        )
+    )
 
 
 class PublicationPrimaryAuthorLocation(Base):
@@ -447,4 +459,56 @@ class PublicationPrimaryAuthorLocation(Base):
     location: Mapped["Location"] = relationship(
         back_populates="publication_primary_author_locations",
         lazy="selectin",
+    )
+
+
+class PublicationAuthorLocation(Base):
+    __tablename__ = "publication_author_locations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    publication_id: Mapped[int] = mapped_column(
+        ForeignKey("publications.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    author_name: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    author_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    raw_author_group: Mapped[str] = mapped_column(
+        Text, nullable=False, default=""
+    )
+    affiliation_text: Mapped[str] = mapped_column(Text, nullable=False)
+    affiliation_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    location_id: Mapped[int] = mapped_column(
+        ForeignKey("locations.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+
+    publication: Mapped["Publication"] = relationship(
+        back_populates="author_locations",
+        lazy="selectin",
+    )
+    location: Mapped["Location"] = relationship(
+        back_populates="publication_author_locations",
+        lazy="selectin",
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "publication_id",
+            "author_name",
+            "location_id",
+            "affiliation_index",
+            name="uq_publication_author_location",
+        ),
+        Index(
+            "ix_publication_author_location_pub",
+            "publication_id",
+            "author_name",
+            "affiliation_index",
+        ),
+        Index(
+            "ix_publication_author_location_loc",
+            "location_id",
+            "author_name",
+            "publication_id",
+        ),
     )
