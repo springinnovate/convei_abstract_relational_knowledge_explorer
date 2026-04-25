@@ -1,6 +1,7 @@
 from datetime import datetime
 import csv
 import logging
+from pathlib import Path
 
 from tqdm import tqdm
 from sqlalchemy import create_engine, event, select, func, and_
@@ -22,6 +23,7 @@ def _set_sqlite_pragma(dbapi_connection, connection_record):
 
 
 db_path = "2025_11_09_researchgate.sqlite"
+reports_dir = Path("topic_mapping_reports")
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
@@ -37,7 +39,8 @@ event.listen(engine, "connect", _set_sqlite_pragma)
 Base.metadata.create_all(engine)
 
 timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-output_path = f"satellite_pair_counts_{timestamp}.csv"
+reports_dir.mkdir(exist_ok=True)
+output_path = reports_dir / f"satellite_pair_counts_{timestamp}.csv"
 
 pts1 = aliased(PublicationToSatellite)
 pts2 = aliased(PublicationToSatellite)

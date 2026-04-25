@@ -24,6 +24,7 @@ Notes:
 import argparse
 import csv
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 from sqlalchemy import create_engine, event, func, select
@@ -32,6 +33,7 @@ from sqlalchemy.orm import Session
 from models import BaseTopics, BaseTopicToPublicationDistance, Publication
 
 DB_PATH = "2025_11_09_researchgate.sqlite"
+REPORTS_DIR = Path("topic_mapping_reports")
 
 
 engine = create_engine(
@@ -245,8 +247,11 @@ def main():
     argument_parser.add_argument("--end-year", type=int, required=True)
     args = argument_parser.parse_args()
     timestamp = timestamp_suffix()
-    csv_path = f"subject_vector_by_year_{timestamp}.csv"
-    normalized_csv_path = f"analyze_subject_vector_by_year_normalized_{timestamp}.csv"
+    REPORTS_DIR.mkdir(exist_ok=True)
+    csv_path = REPORTS_DIR / f"subject_vector_by_year_{timestamp}.csv"
+    normalized_csv_path = (
+        REPORTS_DIR / f"analyze_subject_vector_by_year_normalized_{timestamp}.csv"
+    )
 
     engine = create_engine(
         f"sqlite:///{args.db}",
