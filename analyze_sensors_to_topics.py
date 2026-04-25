@@ -1,6 +1,7 @@
 from datetime import datetime
 import csv
 import logging
+from pathlib import Path
 
 from tqdm import tqdm
 from sqlalchemy import create_engine, event, select
@@ -24,6 +25,7 @@ def _set_sqlite_pragma(dbapi_connection, connection_record):
 
 
 db_path = "2025_11_09_researchgate.sqlite"
+reports_dir = Path("topic_mapping_reports")
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
@@ -104,7 +106,8 @@ with Session(engine) as session:
             matrix[topic_name][sensor_names[sensor_idx]] += semantic_similarity
 
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    output_path = f"sensor_to_topic_closeness_{timestamp}.csv"
+    reports_dir.mkdir(exist_ok=True)
+    output_path = reports_dir / f"sensor_to_topic_closeness_{timestamp}.csv"
 
     logging.info("Writing CSV to %s", output_path)
     with open(output_path, "w", newline="", encoding="utf-8") as f:

@@ -22,6 +22,7 @@ Example:
 import argparse
 import csv
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 from sqlalchemy import create_engine, event, func, select
@@ -34,6 +35,7 @@ from models import (
 )
 
 DB_PATH = "2025_11_09_researchgate.sqlite"
+REPORTS_DIR = Path("topic_mapping_reports")
 
 
 def _set_sqlite_pragma(dbapi_connection, _):
@@ -185,9 +187,10 @@ def main():
     parser.add_argument("--end-year", type=int, required=True)
     args = parser.parse_args()
     timestamp = timestamp_suffix()
-    csv_path = f"analyze_affiliation_vector_by_year_{timestamp}.csv"
+    REPORTS_DIR.mkdir(exist_ok=True)
+    csv_path = REPORTS_DIR / f"analyze_affiliation_vector_by_year_{timestamp}.csv"
     normalized_csv_path = (
-        f"analyze_affiliation_vector_by_year_normalized_{timestamp}.csv"
+        REPORTS_DIR / f"analyze_affiliation_vector_by_year_normalized_{timestamp}.csv"
     )
 
     engine = create_engine(
