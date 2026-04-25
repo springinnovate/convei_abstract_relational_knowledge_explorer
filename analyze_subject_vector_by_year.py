@@ -296,14 +296,6 @@ def timestamp_suffix() -> str:
     return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 
-def default_csv_path(timestamp: str) -> str:
-    return f"subject_vector_by_year_{timestamp}.csv"
-
-
-def default_normalized_csv_path(timestamp: str) -> str:
-    return f"analyze_subject_vector_by_year_normalized_{timestamp}.csv"
-
-
 def normalize_year_columns(year_topic_matrix: np.ndarray) -> np.ndarray:
     column_sums = year_topic_matrix.sum(axis=0)
     normalized = np.zeros_like(year_topic_matrix)
@@ -351,8 +343,8 @@ def main():
     argument_parser.add_argument("--short-name-weighted-topic", type=str, required=True)
     args = argument_parser.parse_args()
     timestamp = timestamp_suffix()
-    csv_path = default_csv_path(timestamp)
-    normalized_csv_path = default_normalized_csv_path(timestamp)
+    csv_path = f"subject_vector_by_year_{timestamp}.csv"
+    normalized_csv_path = f"analyze_subject_vector_by_year_normalized_{timestamp}.csv"
 
     engine = create_engine(
         f"sqlite:///{args.db}",
