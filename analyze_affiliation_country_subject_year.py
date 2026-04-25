@@ -66,22 +66,43 @@ country_map as (
 )
 """
 
+soft_weight_ctes = """
+with positive_subject as (
+    select
+        btpd.publication_id,
+        bt.short_name as subject,
+        btpd.semantic_similarity as subject_weight
+    from base_topic_to_pub_distance btpd
+    join base_topics bt on bt.id = btpd.base_topic_id
+    where btpd.semantic_similarity > 0
+),
+positive_affiliation as (
+    select
+        atpd.publication_id,
+        aft.short_name as affiliation_type,
+        atpd.semantic_similarity as affiliation_weight
+    from affiliation_type_to_pub_distance atpd
+    join affiliation_types aft on aft.id = atpd.affiliation_type_id
+    where atpd.semantic_similarity > 0
+)
+"""
+
 reports = [
     (
         "affiliation_type_vs_subject",
         "Affiliation type",
         "Subject",
         "Affiliation type vs subject",
-        common_ctes
+        False,
+        soft_weight_ctes
         + """
         select
-            ta.affiliation_type as row_label,
-            ts.subject as column_label,
-            count(distinct p.id) as count
-        from publications p
-        join top_subject ts on ts.publication_id = p.id
-        join top_affiliation ta on ta.publication_id = p.id
-        group by ta.affiliation_type, ts.subject
+            pa.affiliation_type as row_label,
+            ps.subject as column_label,
+            sum(pa.affiliation_weight * ps.subject_weight) as count
+        from positive_affiliation pa
+        join positive_subject ps on ps.publication_id = pa.publication_id
+        group by pa.affiliation_type, ps.subject
         """,
     ),
     (
@@ -89,6 +110,7 @@ reports = [
         "Country",
         "Year",
         "Country vs year",
+        True,
         common_ctes
         + """
         select
@@ -106,6 +128,7 @@ reports = [
         "Country",
         "Subject",
         "Country vs subject",
+        True,
         common_ctes
         + """
         select
@@ -123,6 +146,7 @@ reports = [
         "Country",
         "Affiliation type",
         "Country vs affiliation type",
+        True,
         common_ctes
         + """
         select
@@ -165,7 +189,7 @@ if tqdm is not None:
     report_iterator = tqdm(reports, desc="reports", unit="report")
 
 with engine.connect() as conn:
-    for stem, row_name, col_name, title, query in report_iterator:
+    for stem, row_name, col_name, title, integer_values, query in report_iterator:
         report_start = perf_counter()
         logger.info("Starting report: %s", stem)
         logger.info("Running SQL query for %s", stem)
@@ -183,8 +207,11 @@ with engine.connect() as conn:
         pivot = (
             df.pivot(index="row_label", columns="column_label", values="count")
             .fillna(0)
-            .astype(int)
         )
+        if integer_values:
+            pivot = pivot.astype(int)
+        else:
+            pivot = pivot.astype(float)
         pivot = pivot.reindex(sorted(pivot.index.tolist()), axis=0)
         pivot = pivot.reindex(sorted(pivot.columns.tolist()), axis=1)
         pivot.index.name = row_name
