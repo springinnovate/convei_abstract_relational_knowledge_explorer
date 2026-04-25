@@ -146,17 +146,24 @@ reports = [
         "Country",
         "Affiliation type",
         "Country vs affiliation type",
-        True,
-        common_ctes
+        False,
+        soft_weight_ctes
         + """
+        , country_map as (
+            select distinct
+                ppal.publication_id,
+                l.name as country
+            from publication_primary_author_locations ppal
+            join locations l on l.id = ppal.location_id
+            where lower(l.type) = 'country'
+        )
         select
             cm.country as row_label,
-            ta.affiliation_type as column_label,
-            count(distinct p.id) as count
-        from publications p
-        join country_map cm on cm.publication_id = p.id
-        join top_affiliation ta on ta.publication_id = p.id
-        group by cm.country, ta.affiliation_type
+            pa.affiliation_type as column_label,
+            sum(pa.affiliation_weight) as count
+        from country_map cm
+        join positive_affiliation pa on pa.publication_id = cm.publication_id
+        group by cm.country, pa.affiliation_type
         """,
     ),
 ]
