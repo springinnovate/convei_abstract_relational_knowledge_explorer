@@ -1,12 +1,25 @@
 from datetime import datetime
+import logging
 from pathlib import Path
+from time import perf_counter
 
 import pandas as pd
 from sqlalchemy import create_engine, text
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
 db_path = "2025_11_09_researchgate.sqlite"
 out_dir = Path("topic_mapping_reports")
 timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 out_dir.mkdir(exist_ok=True)
 
@@ -136,11 +149,37 @@ def normalize_year_columns(pivot: pd.DataFrame) -> pd.DataFrame:
     return normalized
 
 
+def elapsed_seconds(start_time: float) -> str:
+    return f"{perf_counter() - start_time:.1f}s"
+
+
 engine = create_engine(f"sqlite:///{db_path}")
 
+logger.info("Starting affiliation country/subject/year analysis")
+logger.info("Database: %s", db_path)
+logger.info("Output directory: %s", out_dir)
+logger.info("Timestamp suffix: %s", timestamp)
+
+report_iterator = reports
+if tqdm is not None:
+    report_iterator = tqdm(reports, desc="reports", unit="report")
+
 with engine.connect() as conn:
-    for stem, row_name, col_name, title, query in reports:
+    for stem, row_name, col_name, title, query in report_iterator:
+        report_start = perf_counter()
+        logger.info("Starting report: %s", stem)
+        logger.info("Running SQL query for %s", stem)
+        query_start = perf_counter()
         df = pd.read_sql_query(text(query), conn)
+        logger.info(
+            "SQL complete for %s: rows=%s elapsed=%s",
+            stem,
+            len(df),
+            elapsed_seconds(query_start),
+        )
+
+        logger.info("Building pivot for %s", stem)
+        pivot_start = perf_counter()
         pivot = (
             df.pivot(index="row_label", columns="column_label", values="count")
             .fillna(0)
@@ -150,9 +189,25 @@ with engine.connect() as conn:
         pivot = pivot.reindex(sorted(pivot.columns.tolist()), axis=1)
         pivot.index.name = row_name
         pivot.columns.name = col_name
+        logger.info(
+            "Pivot complete for %s: rows=%s columns=%s elapsed=%s",
+            stem,
+            pivot.shape[0],
+            pivot.shape[1],
+            elapsed_seconds(pivot_start),
+        )
 
         csv_path = out_dir / f"{stem}_{timestamp}.csv"
+        logger.info("Writing CSV for %s: %s", stem, csv_path)
         pivot.to_csv(csv_path)
         if col_name == "Year":
             normalized_csv_path = out_dir / f"{stem}_normalized_{timestamp}.csv"
+            logger.info(
+                "Writing normalized year CSV for %s: %s",
+                stem,
+                normalized_csv_path,
+            )
             normalize_year_columns(pivot).to_csv(normalized_csv_path)
+        logger.info("Finished report: %s elapsed=%s", stem, elapsed_seconds(report_start))
+
+logger.info("Finished affiliation country/subject/year analysis")
