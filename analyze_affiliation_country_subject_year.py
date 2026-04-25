@@ -128,17 +128,24 @@ reports = [
         "Country",
         "Subject",
         "Country vs subject",
-        True,
-        common_ctes
+        False,
+        soft_weight_ctes
         + """
+        , country_map as (
+            select distinct
+                ppal.publication_id,
+                l.name as country
+            from publication_primary_author_locations ppal
+            join locations l on l.id = ppal.location_id
+            where lower(l.type) = 'country'
+        )
         select
             cm.country as row_label,
-            ts.subject as column_label,
-            count(distinct p.id) as count
-        from publications p
-        join country_map cm on cm.publication_id = p.id
-        join top_subject ts on ts.publication_id = p.id
-        group by cm.country, ts.subject
+            ps.subject as column_label,
+            sum(ps.subject_weight) as count
+        from country_map cm
+        join positive_subject ps on ps.publication_id = cm.publication_id
+        group by cm.country, ps.subject
         """,
     ),
     (
