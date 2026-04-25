@@ -14,7 +14,7 @@ topic and one column per year.
 
 Typical usage:
     python script.py --db path/to/db.sqlite --start-year 2015 --end-year 2020 \
-        --short-name-weighted-topic "machine_learning" --csv out.csv
+        --short-name-weighted-topic "machine_learning"
 
 Notes:
     - Uses SQLite WAL mode and a busy timeout for better concurrency behavior.
@@ -25,7 +25,6 @@ Notes:
 import argparse
 import csv
 from datetime import datetime
-from pathlib import Path
 
 import numpy as np
 from sqlalchemy import create_engine, event, select
@@ -305,11 +304,6 @@ def default_normalized_csv_path(timestamp: str) -> str:
     return f"analyze_subject_vector_by_year_normalized_{timestamp}.csv"
 
 
-def companion_normalized_csv_path(path: str) -> str:
-    csv_path = Path(path)
-    return str(csv_path.with_name(f"{csv_path.stem}_normalized{csv_path.suffix}"))
-
-
 def normalize_year_columns(year_topic_matrix: np.ndarray) -> np.ndarray:
     column_sums = year_topic_matrix.sum(axis=0)
     normalized = np.zeros_like(year_topic_matrix)
@@ -355,17 +349,10 @@ def main():
     argument_parser.add_argument("--start-year", type=int, required=True)
     argument_parser.add_argument("--end-year", type=int, required=True)
     argument_parser.add_argument("--short-name-weighted-topic", type=str, required=True)
-    argument_parser.add_argument("--csv", default=None)
-    argument_parser.add_argument("--normalized-csv", default=None)
     args = argument_parser.parse_args()
     timestamp = timestamp_suffix()
-    csv_path = args.csv or default_csv_path(timestamp)
-    if args.normalized_csv:
-        normalized_csv_path = args.normalized_csv
-    elif args.csv:
-        normalized_csv_path = companion_normalized_csv_path(args.csv)
-    else:
-        normalized_csv_path = default_normalized_csv_path(timestamp)
+    csv_path = default_csv_path(timestamp)
+    normalized_csv_path = default_normalized_csv_path(timestamp)
 
     engine = create_engine(
         f"sqlite:///{args.db}",
