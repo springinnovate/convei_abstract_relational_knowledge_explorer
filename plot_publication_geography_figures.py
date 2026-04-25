@@ -12,6 +12,10 @@ input directory and writes high-resolution PNGs into a subdirectory. It uses:
 
 Usage:
     python plot_publication_geography_figures.py --input-dir topic_mapping_reports
+
+Optional:
+    python plot_publication_geography_figures.py --input-dir topic_mapping_reports \
+        --shapefile path/to/country_boundaries.shp
 """
 
 import argparse
@@ -193,6 +197,13 @@ def read_country_year(path: Path) -> pd.DataFrame:
     return grouped
 
 
+def filter_years(country_year: pd.DataFrame, start_year: int) -> pd.DataFrame:
+    year_columns = [column for column in country_year.columns if column >= start_year]
+    if not year_columns:
+        raise ValueError(f"No country/year columns found at or after {start_year}")
+    return country_year.loc[:, year_columns]
+
+
 def read_author_country_signal(path: Path) -> pd.Series:
     LOGGER.info("Reading author country affiliation weights: %s", path)
     df = pd.read_csv(path)
@@ -234,7 +245,23 @@ def plot_annual_stacked_cumulative(
     fig, ax = plt.subplots(figsize=(12, 6.5))
     bottom = np.zeros(len(years), dtype=float)
 
-    for index, country in enumerate(top_country_names):
+    other_values = annual_total.to_numpy(dtype=float) - country_year.loc[
+        top_country_names, years
+    ].sum(axis=0).to_numpy(dtype=float)
+    ax.bar(
+        years,
+        other_values,
+        bottom=bottom,
+        width=0.82,
+        color="#bdbdbd",
+        edgecolor="white",
+        linewidth=0.25,
+        label="Other Countries",
+    )
+    bottom += other_values
+
+    for country in reversed(top_country_names):
+        index = top_country_names.index(country)
         values = country_year.loc[country, years].to_numpy(dtype=float)
         ax.bar(
             years,
@@ -247,18 +274,6 @@ def plot_annual_stacked_cumulative(
             label=country,
         )
         bottom += values
-
-    other_values = annual_total.to_numpy(dtype=float) - bottom
-    ax.bar(
-        years,
-        other_values,
-        bottom=bottom,
-        width=0.82,
-        color="#bdbdbd",
-        edgecolor="white",
-        linewidth=0.25,
-        label="Other Countries",
-    )
 
     cumulative_ax = ax.twinx()
     cumulative_ax.plot(
@@ -332,9 +347,17 @@ def plot_total_papers_bar(
     save_figure(fig, output_path, dpi)
 
 
-def load_world_geometries():
+def load_world_geometries(shapefile: Path | None):
     if gpd is None:
+        if shapefile is not None:
+            LOGGER.warning(
+                "Cannot draw shapefile %s because geopandas is not installed",
+                shapefile,
+            )
         return None
+    if shapefile is not None:
+        LOGGER.info("Loading map background shapefile: %s", shapefile)
+        return gpd.read_file(shapefile)
     try:
         if geodatasets is not None:
             return gpd.read_file(geodatasets.get_path("naturalearth.land"))
@@ -347,9 +370,14 @@ def load_world_geometries():
     return None
 
 
-def draw_world_background(ax) -> None:
-    world = load_world_geometries()
+def draw_world_background(ax, shapefile: Path | None) -> None:
+    world = load_world_geometries(shapefile)
     if world is not None:
+        try:
+            if world.crs is not None and world.crs.to_epsg() != 4326:
+                world = world.to_crs(epsg=4326)
+        except Exception as exc:
+            LOGGER.warning("Could not reproject map background to EPSG:4326: %s", exc)
         world.plot(
             ax=ax,
             color="#f3ead7",
@@ -358,6 +386,10 @@ def draw_world_background(ax) -> None:
             zorder=1,
         )
     else:
+        LOGGER.warning(
+            "No map background available. Install geopandas/geodatasets or pass "
+            "--shapefile path/to/countries.shp for country outlines."
+        )
         ax.set_facecolor("#faf7ef")
     ax.set_xlim(-180, 180)
     ax.set_ylim(-60, 85)
@@ -409,13 +441,14 @@ def plot_world_bubble_map(
     title: str,
     color: str,
     legend_title: str,
+    shapefile: Path | None,
 ) -> None:
     points = country_points(values)
     if points.empty:
         raise ValueError(f"No countries with known centroids for {title}")
 
     fig, ax = plt.subplots(figsize=(13, 7))
-    draw_world_background(ax)
+    draw_world_background(ax, shapefile)
     sizes = bubble_sizes(points["value"], min_size=18, max_size=1500)
     ax.scatter(
         points["longitude"],
@@ -461,7 +494,14 @@ def main() -> None:
     parser.add_argument("--input-dir", type=Path, default=Path("topic_mapping_reports"))
     parser.add_argument("--output-subdir", default="publication_geography_figures")
     parser.add_argument("--top-n", type=int, default=10)
+    parser.add_argument("--start-year", type=int, default=1990)
     parser.add_argument("--dpi", type=int, default=300)
+    parser.add_argument(
+        "--shapefile",
+        type=Path,
+        default=None,
+        help="Optional country boundary shapefile for map backgrounds.",
+    )
     args = parser.parse_args()
 
     setup_logging()
@@ -472,6 +512,7 @@ def main() -> None:
 
     inputs = discover_inputs(input_dir)
     country_year = read_country_year(inputs.country_year_csv)
+    country_year = filter_years(country_year, args.start_year)
     author_signal = read_author_country_signal(inputs.author_country_affiliation_csv)
     top_country_names = top_countries(country_year, args.top_n)
     paper_totals = country_year.sum(axis=1).sort_values(ascending=False)
@@ -497,6 +538,7 @@ def main() -> None:
         "Total Papers by Country",
         "#a36b2c",
         "Papers",
+        args.shapefile,
     )
     plot_world_bubble_map(
         author_signal,
@@ -505,6 +547,7 @@ def main() -> None:
         "Relative All-Author Country Signal",
         "#61bf7b",
         "Author signal",
+        args.shapefile,
     )
 
     LOGGER.info("Done. Figures written to %s", output_dir)
