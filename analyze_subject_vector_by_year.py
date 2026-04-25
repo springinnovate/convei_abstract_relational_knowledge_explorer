@@ -5,9 +5,9 @@ Compute per-year base-topic distributions for publications stored in a SQLite da
 
 This script queries a ResearchGate-derived SQLite database containing publications, base topics,
 and per-publication distances (semantic similarities) to base topics. For each year, it sums
-the semantic similarity scores for each base topic across all publications in that year to form
-a year-level topic vector. It also writes a normalized companion matrix where each year column
-sums to 1.0.
+the positive semantic similarity scores for each base topic across all publications in that year
+to form a year-level topic vector. It also writes a normalized companion matrix where each year
+column sums to 1.0.
 
 The script can compute vectors across a year range and write a CSV matrix with one row per base
 topic and one column per year.
@@ -95,7 +95,7 @@ def year_vector(
     """Compute a year-level base-topic vector by summing topic scores.
 
     For each publication in the specified year, this function adds each base topic's
-    semantic similarity score to the corresponding year-level topic total.
+    positive semantic similarity score to the corresponding year-level topic total.
 
     Args:
         session: An active SQLAlchemy session.
@@ -104,7 +104,7 @@ def year_vector(
         base_topic_index_by_id: Dict mapping base topic ID (int) -> index (int).
 
     Returns:
-        NumPy array (float64) with summed semantic similarity per base topic.
+        NumPy array (float64) with summed positive semantic similarity per base topic.
     """
     print(f"[year_vector] start year={year}")
 
@@ -120,6 +120,7 @@ def year_vector(
             Publication.id == BaseTopicToPublicationDistance.publication_id,
         )
         .where(Publication.publication_year == year)
+        .where(BaseTopicToPublicationDistance.semantic_similarity > 0.0)
         .group_by(BaseTopicToPublicationDistance.base_topic_id)
         .order_by(BaseTopicToPublicationDistance.base_topic_id)
     )
