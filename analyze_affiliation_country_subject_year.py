@@ -1,16 +1,25 @@
 from datetime import datetime
+import logging
 from pathlib import Path
+from time import perf_counter
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import pandas as pd
 from sqlalchemy import create_engine, text
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
 db_path = "2025_11_09_researchgate.sqlite"
 out_dir = Path("topic_mapping_reports")
-timestamp = datetime.now().strftime("%Y_%m_%d_%M_%S")
+timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 out_dir.mkdir(exist_ok=True)
 
@@ -27,6 +36,7 @@ with top_subject as (
             ) as rn
         from base_topic_to_pub_distance btpd
         join base_topics bt on bt.id = btpd.base_topic_id
+        where btpd.semantic_similarity > 0
     )
     where rn = 1
 ),
@@ -42,6 +52,7 @@ top_affiliation as (
             ) as rn
         from affiliation_type_to_pub_distance atpd
         join affiliation_types aft on aft.id = atpd.affiliation_type_id
+        where atpd.semantic_similarity > 0
     )
     where rn = 1
 ),
@@ -126,11 +137,49 @@ reports = [
     ),
 ]
 
+
+def normalize_year_columns(pivot: pd.DataFrame) -> pd.DataFrame:
+    column_sums = pivot.sum(axis=0)
+    normalized = pivot.astype(float).copy()
+    nonzero_columns = column_sums != 0
+    normalized.loc[:, nonzero_columns] = (
+        normalized.loc[:, nonzero_columns] / column_sums[nonzero_columns]
+    )
+    normalized.loc[:, ~nonzero_columns] = 0.0
+    return normalized
+
+
+def elapsed_seconds(start_time: float) -> str:
+    return f"{perf_counter() - start_time:.1f}s"
+
+
 engine = create_engine(f"sqlite:///{db_path}")
 
+logger.info("Starting affiliation country/subject/year analysis")
+logger.info("Database: %s", db_path)
+logger.info("Output directory: %s", out_dir)
+logger.info("Timestamp suffix: %s", timestamp)
+
+report_iterator = reports
+if tqdm is not None:
+    report_iterator = tqdm(reports, desc="reports", unit="report")
+
 with engine.connect() as conn:
-    for stem, row_name, col_name, title, query in reports:
+    for stem, row_name, col_name, title, query in report_iterator:
+        report_start = perf_counter()
+        logger.info("Starting report: %s", stem)
+        logger.info("Running SQL query for %s", stem)
+        query_start = perf_counter()
         df = pd.read_sql_query(text(query), conn)
+        logger.info(
+            "SQL complete for %s: rows=%s elapsed=%s",
+            stem,
+            len(df),
+            elapsed_seconds(query_start),
+        )
+
+        logger.info("Building pivot for %s", stem)
+        pivot_start = perf_counter()
         pivot = (
             df.pivot(index="row_label", columns="column_label", values="count")
             .fillna(0)
@@ -140,27 +189,25 @@ with engine.connect() as conn:
         pivot = pivot.reindex(sorted(pivot.columns.tolist()), axis=1)
         pivot.index.name = row_name
         pivot.columns.name = col_name
+        logger.info(
+            "Pivot complete for %s: rows=%s columns=%s elapsed=%s",
+            stem,
+            pivot.shape[0],
+            pivot.shape[1],
+            elapsed_seconds(pivot_start),
+        )
 
         csv_path = out_dir / f"{stem}_{timestamp}.csv"
-        png_path = out_dir / f"{stem}_{timestamp}.png"
-
+        logger.info("Writing CSV for %s: %s", stem, csv_path)
         pivot.to_csv(csv_path)
-
-        fig, ax = plt.subplots(
-            figsize=(
-                max(8, pivot.shape[1] * 0.6),
-                max(6, pivot.shape[0] * 0.35),
+        if col_name == "Year":
+            normalized_csv_path = out_dir / f"{stem}_normalized_{timestamp}.csv"
+            logger.info(
+                "Writing normalized year CSV for %s: %s",
+                stem,
+                normalized_csv_path,
             )
-        )
-        image = ax.imshow(pivot.to_numpy(), aspect="auto")
-        ax.set_title(title)
-        ax.set_xlabel(col_name)
-        ax.set_ylabel(row_name)
-        ax.set_xticks(range(pivot.shape[1]))
-        ax.set_xticklabels([str(x) for x in pivot.columns], rotation=90)
-        ax.set_yticks(range(pivot.shape[0]))
-        ax.set_yticklabels([str(x) for x in pivot.index])
-        fig.colorbar(image, ax=ax, label="Publication count")
-        fig.tight_layout()
-        fig.savefig(png_path, dpi=200, bbox_inches="tight")
-        plt.close(fig)
+            normalize_year_columns(pivot).to_csv(normalized_csv_path)
+        logger.info("Finished report: %s elapsed=%s", stem, elapsed_seconds(report_start))
+
+logger.info("Finished affiliation country/subject/year analysis")
