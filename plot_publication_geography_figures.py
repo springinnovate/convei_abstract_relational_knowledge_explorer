@@ -447,7 +447,11 @@ def plot_world_bubble_map(
     if points.empty:
         raise ValueError(f"No countries with known centroids for {title}")
 
-    fig, ax = plt.subplots(figsize=(13, 7))
+    fig, (ax, legend_ax) = plt.subplots(
+        nrows=2,
+        figsize=(13, 8.2),
+        gridspec_kw={"height_ratios": [10, 1.35], "hspace": 0.18},
+    )
     draw_world_background(ax, shapefile)
     sizes = bubble_sizes(points["value"], min_size=18, max_size=1500)
     ax.scatter(
@@ -468,22 +472,32 @@ def plot_world_bubble_map(
         num=5,
     )
     legend_sizes = bubble_sizes(pd.Series(legend_values), 18, 1500)
+    legend_ax.axis("off")
     handles = [
-        ax.scatter([], [], s=size, color=color, alpha=0.72, edgecolor="#4a3820")
+        legend_ax.scatter(
+            [],
+            [],
+            s=size,
+            color=color,
+            alpha=0.72,
+            edgecolor="#4a3820",
+        )
         for size in legend_sizes
     ]
     labels = [f"{value:,.0f}" for value in legend_values]
-    ax.legend(
+    legend_ax.legend(
         handles,
         labels,
         title=legend_title,
         scatterpoints=1,
         frameon=False,
-        loc="lower left",
-        bbox_to_anchor=(0.02, -0.02),
+        loc="center",
         ncol=len(handles),
         fontsize=8,
         title_fontsize=9,
+        columnspacing=2.4,
+        handletextpad=1.8,
+        borderaxespad=0.0,
     )
 
     save_figure(fig, output_path, dpi)
