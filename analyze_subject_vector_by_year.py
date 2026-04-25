@@ -24,6 +24,7 @@ Notes:
 
 import argparse
 import csv
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -292,7 +293,19 @@ def write_csv(path: str, base_topic_ids, base_topic_text_by_id, year_topic_vecto
             )
 
 
-def default_normalized_csv_path(path: str) -> str:
+def timestamp_suffix() -> str:
+    return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+
+def default_csv_path(timestamp: str) -> str:
+    return f"subject_vector_by_year_{timestamp}.csv"
+
+
+def default_normalized_csv_path(timestamp: str) -> str:
+    return f"analyze_subject_vector_by_year_normalized_{timestamp}.csv"
+
+
+def companion_normalized_csv_path(path: str) -> str:
     csv_path = Path(path)
     return str(csv_path.with_name(f"{csv_path.stem}_normalized{csv_path.suffix}"))
 
@@ -345,6 +358,14 @@ def main():
     argument_parser.add_argument("--csv", default=None)
     argument_parser.add_argument("--normalized-csv", default=None)
     args = argument_parser.parse_args()
+    timestamp = timestamp_suffix()
+    csv_path = args.csv or default_csv_path(timestamp)
+    if args.normalized_csv:
+        normalized_csv_path = args.normalized_csv
+    elif args.csv:
+        normalized_csv_path = companion_normalized_csv_path(args.csv)
+    else:
+        normalized_csv_path = default_normalized_csv_path(timestamp)
 
     engine = create_engine(
         f"sqlite:///{args.db}",
@@ -378,18 +399,15 @@ def main():
             year_topic_matrix[:, year_index] = year_topic_vector
 
         write_year_matrix_csv(
-            args.csv,
+            csv_path,
             base_topic_ids,
             base_topic_text_by_id,
             years,
             year_topic_matrix,
         )
 
-        normalized_csv = args.normalized_csv or default_normalized_csv_path(
-            args.csv
-        )
         write_year_matrix_csv(
-            normalized_csv,
+            normalized_csv_path,
             base_topic_ids,
             base_topic_text_by_id,
             years,
