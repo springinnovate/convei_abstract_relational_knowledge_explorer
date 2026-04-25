@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, text
 
 db_path = "2025_11_09_researchgate.sqlite"
 out_dir = Path("topic_mapping_reports")
-timestamp = datetime.now().strftime("%Y_%m_%d_%M_%S")
+timestamp = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 out_dir.mkdir(exist_ok=True)
 
@@ -27,6 +27,7 @@ with top_subject as (
             ) as rn
         from base_topic_to_pub_distance btpd
         join base_topics bt on bt.id = btpd.base_topic_id
+        where btpd.semantic_similarity > 0
     )
     where rn = 1
 ),
@@ -42,6 +43,7 @@ top_affiliation as (
             ) as rn
         from affiliation_type_to_pub_distance atpd
         join affiliation_types aft on aft.id = atpd.affiliation_type_id
+        where atpd.semantic_similarity > 0
     )
     where rn = 1
 ),
@@ -126,6 +128,18 @@ reports = [
     ),
 ]
 
+
+def normalize_year_columns(pivot: pd.DataFrame) -> pd.DataFrame:
+    column_sums = pivot.sum(axis=0)
+    normalized = pivot.astype(float).copy()
+    nonzero_columns = column_sums != 0
+    normalized.loc[:, nonzero_columns] = (
+        normalized.loc[:, nonzero_columns] / column_sums[nonzero_columns]
+    )
+    normalized.loc[:, ~nonzero_columns] = 0.0
+    return normalized
+
+
 engine = create_engine(f"sqlite:///{db_path}")
 
 with engine.connect() as conn:
@@ -145,6 +159,9 @@ with engine.connect() as conn:
         png_path = out_dir / f"{stem}_{timestamp}.png"
 
         pivot.to_csv(csv_path)
+        if col_name == "Year":
+            normalized_csv_path = out_dir / f"{stem}_normalized_{timestamp}.csv"
+            normalize_year_columns(pivot).to_csv(normalized_csv_path)
 
         fig, ax = plt.subplots(
             figsize=(

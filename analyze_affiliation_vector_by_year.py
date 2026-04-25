@@ -4,10 +4,10 @@ from __future__ import annotations
 Compute per-year affiliation-type distributions for publications in a SQLite database.
 
 This script aggregates semantic similarity scores between publications and
-affiliation types into yearly distributions. For each publication in a given
-year, it computes a temperature-scaled softmax over that publication's
-affiliation-type similarity scores. These per-publication distributions are
-summed to produce a year-level affiliation-type vector.
+affiliation types into yearly distributions. For each year, it sums positive
+semantic similarity scores for each affiliation type across publications to
+produce a year-level affiliation-type vector. It also writes a normalized
+companion matrix where each year column sums to 1.0.
 
 The result is written to a CSV file with one row per affiliation type and one
 column per year.
@@ -16,16 +16,15 @@ Example:
     python affiliation_type_year_distribution.py \
         --db 2025_11_09_researchgate.sqlite \
         --start-year 2015 \
-        --end-year 2020 \
-        --temperature 0.3 \
-        --csv out.csv
+        --end-year 2020
 """
 
 import argparse
 import csv
+from datetime import datetime
 
 import numpy as np
-from sqlalchemy import create_engine, event, select
+from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.orm import Session
 
 from models import (
@@ -84,38 +83,34 @@ def _load_affiliation_types(session: Session):
     return aff_type_ids, aff_type_text_by_id, aff_type_index_by_id
 
 
-def year_vector(session: Session, year: int, temperature: float):
+def year_vector(
+    session: Session,
+    year: int,
+    aff_type_ids_all,
+    aff_type_index_by_id: dict[int, int],
+):
     """Compute a year-level affiliation-type distribution vector.
 
-    For each publication in the specified year:
-        1. Collects (affiliation_type_id, semantic_similarity) pairs.
-        2. Applies temperature-scaled softmax to the similarity scores.
-        3. Accumulates the resulting weights into a year-level vector.
+    For each publication in the specified year, this function adds each positive
+    affiliation-type semantic similarity score to the year-level type total.
 
     Args:
         session: An active SQLAlchemy session.
         year: Publication year to aggregate.
-        temperature: Softmax temperature parameter controlling sharpness
-            of the per-publication distribution.
+        aff_type_ids_all: Ordered affiliation type IDs.
+        aff_type_index_by_id: ID -> dense index mapping.
 
     Returns:
-        tuple:
-            aff_type_ids_all (np.ndarray): Ordered affiliation type IDs.
-            aff_type_text_by_id (dict[int, str]): ID -> short name mapping.
-            year_aff_vector (np.ndarray): Summed softmax weights per affiliation type.
+        np.ndarray: Summed positive semantic similarity per affiliation type.
     """
-    print(f"[year_vector] start year={year} temperature={temperature}")
+    print(f"[year_vector] start year={year}")
 
-    aff_type_ids_all, aff_type_text_by_id, aff_type_index_by_id = (
-        _load_affiliation_types(session)
-    )
     year_aff_vector = np.zeros(len(aff_type_ids_all), dtype=np.float64)
 
     query = (
         select(
-            AffiliationTypeToPublicationDistance.publication_id,
             AffiliationTypeToPublicationDistance.affiliation_type_id,
-            AffiliationTypeToPublicationDistance.semantic_similarity,
+            func.sum(AffiliationTypeToPublicationDistance.semantic_similarity),
         )
         .join(
             Publication,
@@ -123,57 +118,52 @@ def year_vector(session: Session, year: int, temperature: float):
             == AffiliationTypeToPublicationDistance.publication_id,
         )
         .where(Publication.publication_year == year)
-        .order_by(
-            AffiliationTypeToPublicationDistance.publication_id,
-            AffiliationTypeToPublicationDistance.affiliation_type_id,
-        )
+        .where(AffiliationTypeToPublicationDistance.semantic_similarity > 0.0)
+        .group_by(AffiliationTypeToPublicationDistance.affiliation_type_id)
+        .order_by(AffiliationTypeToPublicationDistance.affiliation_type_id)
     )
 
-    rows = session.execute(query)
-
-    current_publication_id = None
-    publication_aff_type_ids: list[int] = []
-    publication_scores: list[float] = []
-
-    def flush():
-        """Aggregate accumulated rows for a single publication."""
-        if not publication_scores:
-            return
-
-        scores = np.array(publication_scores, dtype=np.float64)
-        scores = np.maximum(scores, 0.0)
-        scores = scores / temperature
-
-        max_score = float(scores.max())
-        exponentials = np.exp(scores - max_score)
-        denom = float(exponentials.sum())
-        if denom == 0.0:
-            return
-
-        weights = exponentials / denom
-
-        for aff_type_id, weight in zip(
-            publication_aff_type_ids, weights, strict=True
-        ):
-            year_aff_vector[aff_type_index_by_id[aff_type_id]] += float(weight)
-
-    for publication_id, aff_type_id, semantic_similarity in rows:
-        if current_publication_id is None:
-            current_publication_id = publication_id
-
-        if publication_id != current_publication_id:
-            flush()
-            current_publication_id = publication_id
-            publication_aff_type_ids = []
-            publication_scores = []
-
-        publication_aff_type_ids.append(int(aff_type_id))
-        publication_scores.append(float(semantic_similarity))
-
-    flush()
+    for aff_type_id, semantic_similarity_sum in session.execute(query):
+        year_aff_vector[aff_type_index_by_id[aff_type_id]] = float(
+            semantic_similarity_sum or 0.0
+        )
 
     print(f"[year_vector] done year={year}")
-    return aff_type_ids_all, aff_type_text_by_id, year_aff_vector
+    return year_aff_vector
+
+
+def timestamp_suffix() -> str:
+    return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+
+def normalize_year_columns(year_matrix: np.ndarray) -> np.ndarray:
+    column_sums = year_matrix.sum(axis=0)
+    normalized = np.zeros_like(year_matrix)
+    nonzero_columns = column_sums != 0.0
+    normalized[:, nonzero_columns] = (
+        year_matrix[:, nonzero_columns] / column_sums[nonzero_columns]
+    )
+    return normalized
+
+
+def write_year_matrix_csv(
+    path: str,
+    aff_type_ids,
+    aff_type_text_by_id,
+    years: list[int],
+    year_matrix: np.ndarray,
+) -> None:
+    with open(path, "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["affiliation_type_id", "affiliation_type_short_name", *years])
+        for i, aff_type_id in enumerate(aff_type_ids):
+            writer.writerow(
+                [
+                    int(aff_type_id),
+                    aff_type_text_by_id[int(aff_type_id)],
+                    *year_matrix[i, :].tolist(),
+                ]
+            )
 
 
 def main():
@@ -193,11 +183,12 @@ def main():
     parser.add_argument("--db", default=DB_PATH)
     parser.add_argument("--start-year", type=int, required=True)
     parser.add_argument("--end-year", type=int, required=True)
-    parser.add_argument(
-        "--csv", default="affiliation_type_distribution_by_year.csv"
-    )
-    parser.add_argument("--temperature", type=float, default=0.3)
     args = parser.parse_args()
+    timestamp = timestamp_suffix()
+    csv_path = f"analyze_affiliation_vector_by_year_{timestamp}.csv"
+    normalized_csv_path = (
+        f"analyze_affiliation_vector_by_year_normalized_{timestamp}.csv"
+    )
 
     engine = create_engine(
         f"sqlite:///{args.db}",
@@ -209,38 +200,37 @@ def main():
     years = list(range(args.start_year, args.end_year + 1))
 
     with Session(engine) as session:
-        aff_type_ids, aff_type_text_by_id, year_vec0 = year_vector(
-            session,
-            year=years[0],
-            temperature=args.temperature,
+        aff_type_ids, aff_type_text_by_id, aff_type_index_by_id = (
+            _load_affiliation_types(session)
         )
 
         year_matrix = np.zeros(
             (len(aff_type_ids), len(years)), dtype=np.float64
         )
-        year_matrix[:, 0] = year_vec0
 
-        for year_index, year_value in enumerate(years[1:], start=1):
-            _, _, year_vec = year_vector(
+        for year_index, year_value in enumerate(years):
+            year_vec = year_vector(
                 session,
                 year=year_value,
-                temperature=args.temperature,
+                aff_type_ids_all=aff_type_ids,
+                aff_type_index_by_id=aff_type_index_by_id,
             )
             year_matrix[:, year_index] = year_vec
 
-    with open(args.csv, "w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(
-            ["affiliation_type_id", "affiliation_type_short_name", *years]
-        )
-        for i, aff_type_id in enumerate(aff_type_ids):
-            writer.writerow(
-                [
-                    int(aff_type_id),
-                    aff_type_text_by_id[int(aff_type_id)],
-                    *year_matrix[i, :].tolist(),
-                ]
-            )
+    write_year_matrix_csv(
+        csv_path,
+        aff_type_ids,
+        aff_type_text_by_id,
+        years,
+        year_matrix,
+    )
+    write_year_matrix_csv(
+        normalized_csv_path,
+        aff_type_ids,
+        aff_type_text_by_id,
+        years,
+        normalize_year_columns(year_matrix),
+    )
 
     for year_index, year_value in enumerate(years):
         vec = year_matrix[:, year_index]
