@@ -1,10 +1,6 @@
 from datetime import datetime
 from pathlib import Path
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import pandas as pd
 from sqlalchemy import create_engine, text
 
@@ -156,28 +152,7 @@ with engine.connect() as conn:
         pivot.columns.name = col_name
 
         csv_path = out_dir / f"{stem}_{timestamp}.csv"
-        png_path = out_dir / f"{stem}_{timestamp}.png"
-
         pivot.to_csv(csv_path)
         if col_name == "Year":
             normalized_csv_path = out_dir / f"{stem}_normalized_{timestamp}.csv"
             normalize_year_columns(pivot).to_csv(normalized_csv_path)
-
-        fig, ax = plt.subplots(
-            figsize=(
-                max(8, pivot.shape[1] * 0.6),
-                max(6, pivot.shape[0] * 0.35),
-            )
-        )
-        image = ax.imshow(pivot.to_numpy(), aspect="auto")
-        ax.set_title(title)
-        ax.set_xlabel(col_name)
-        ax.set_ylabel(row_name)
-        ax.set_xticks(range(pivot.shape[1]))
-        ax.set_xticklabels([str(x) for x in pivot.columns], rotation=90)
-        ax.set_yticks(range(pivot.shape[0]))
-        ax.set_yticklabels([str(x) for x in pivot.index])
-        fig.colorbar(image, ax=ax, label="Publication count")
-        fig.tight_layout()
-        fig.savefig(png_path, dpi=200, bbox_inches="tight")
-        plt.close(fig)
