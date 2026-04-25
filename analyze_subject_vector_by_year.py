@@ -14,7 +14,7 @@ topic and one column per year.
 
 Typical usage:
     python script.py --db path/to/db.sqlite --start-year 2015 --end-year 2020 \
-        --short-name-weighted-topic "machine_learning" --csv out.csv
+        --short-name-weighted-topic "machine_learning"
 
 Notes:
     - Uses SQLite WAL mode and a busy timeout for better concurrency behavior.
@@ -24,7 +24,7 @@ Notes:
 
 import argparse
 import csv
-from pathlib import Path
+from datetime import datetime
 
 import numpy as np
 from sqlalchemy import create_engine, event, select
@@ -292,9 +292,8 @@ def write_csv(path: str, base_topic_ids, base_topic_text_by_id, year_topic_vecto
             )
 
 
-def default_normalized_csv_path(path: str) -> str:
-    csv_path = Path(path)
-    return str(csv_path.with_name(f"{csv_path.stem}_normalized{csv_path.suffix}"))
+def timestamp_suffix() -> str:
+    return datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 
 def normalize_year_columns(year_topic_matrix: np.ndarray) -> np.ndarray:
@@ -342,9 +341,10 @@ def main():
     argument_parser.add_argument("--start-year", type=int, required=True)
     argument_parser.add_argument("--end-year", type=int, required=True)
     argument_parser.add_argument("--short-name-weighted-topic", type=str, required=True)
-    argument_parser.add_argument("--csv", default=None)
-    argument_parser.add_argument("--normalized-csv", default=None)
     args = argument_parser.parse_args()
+    timestamp = timestamp_suffix()
+    csv_path = f"subject_vector_by_year_{timestamp}.csv"
+    normalized_csv_path = f"analyze_subject_vector_by_year_normalized_{timestamp}.csv"
 
     engine = create_engine(
         f"sqlite:///{args.db}",
@@ -378,18 +378,15 @@ def main():
             year_topic_matrix[:, year_index] = year_topic_vector
 
         write_year_matrix_csv(
-            args.csv,
+            csv_path,
             base_topic_ids,
             base_topic_text_by_id,
             years,
             year_topic_matrix,
         )
 
-        normalized_csv = args.normalized_csv or default_normalized_csv_path(
-            args.csv
-        )
         write_year_matrix_csv(
-            normalized_csv,
+            normalized_csv_path,
             base_topic_ids,
             base_topic_text_by_id,
             years,
