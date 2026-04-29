@@ -54,7 +54,8 @@ RUN pip install --no-cache-dir \
     openai \
     tiktoken \
     networkx \
-    matplotlib
+    matplotlib \
+    pycountry
 
 WORKDIR /work
 

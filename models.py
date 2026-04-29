@@ -477,6 +477,7 @@ class PublicationAuthorLocation(Base):
         Text, nullable=False, default=""
     )
     affiliation_text: Mapped[str] = mapped_column(Text, nullable=False)
+    cleaned_affiliation_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     affiliation_index: Mapped[int] = mapped_column(Integer, nullable=False)
     location_id: Mapped[int] = mapped_column(
         ForeignKey("locations.id", ondelete="RESTRICT"),
