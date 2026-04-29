@@ -30,6 +30,7 @@ from pathlib import Path
 import numpy as np
 from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import Session
+from tqdm.auto import tqdm
 
 from models import BaseTopics, BaseTopicToPublicationDistance, Publication
 
@@ -112,7 +113,7 @@ def year_vector(
     Returns:
         NumPy array (float64) with summed normalized topic weights per base topic.
     """
-    print(f"[year_vector] start year={year}")
+    tqdm.write(f"[year_vector] start year={year}")
 
     year_topic_vector = np.zeros(len(base_topic_ids_all), dtype=np.float64)
 
@@ -133,7 +134,7 @@ def year_vector(
         )
     )
 
-    print("[year_vector] executing main query")
+    tqdm.write(f"[year_vector] executing main query year={year}")
 
     rows = session.execute(query)
 
@@ -158,20 +159,16 @@ def year_vector(
         if not publication_scores:
             return
 
+        publication_counter += 1
+        publication_progress.update(1)
+        publication_progress.set_postfix(rows=row_counter, refresh=False)
+
         scores = np.array(publication_scores, dtype=np.float64)
         scores = np.maximum(scores, 0.0)
         weights = np.square(scores)
         denominator = float(weights.sum())
         if denominator == 0.0:
             return
-
-        publication_counter += 1
-
-        if publication_counter % 10000 == 0:
-            print(
-                f"[year_vector] flushed {publication_counter} publications "
-                f"(rows processed={row_counter})"
-            )
 
         weights = weights / denominator
 
@@ -180,27 +177,38 @@ def year_vector(
         ):
             year_topic_vector[base_topic_index_by_id[base_topic_id]] += float(weight)
 
-    for publication_id, base_topic_id, semantic_similarity in rows:
-        row_counter += 1
+    publication_progress = tqdm(
+        desc=f"Year {year} publications",
+        unit="pub",
+        leave=False,
+    )
 
-        if row_counter % 100000 == 0:
-            print(f"[year_vector] processed {row_counter} rows")
+    try:
+        for publication_id, base_topic_id, semantic_similarity in tqdm(
+            rows,
+            desc=f"Year {year} topic rows",
+            unit="row",
+            leave=False,
+        ):
+            row_counter += 1
 
-        if current_publication_id is None:
-            current_publication_id = publication_id
+            if current_publication_id is None:
+                current_publication_id = publication_id
 
-        if publication_id != current_publication_id:
-            flush()
-            current_publication_id = publication_id
-            publication_base_topic_ids = []
-            publication_scores = []
+            if publication_id != current_publication_id:
+                flush()
+                current_publication_id = publication_id
+                publication_base_topic_ids = []
+                publication_scores = []
 
-        publication_base_topic_ids.append(int(base_topic_id))
-        publication_scores.append(float(semantic_similarity))
+            publication_base_topic_ids.append(int(base_topic_id))
+            publication_scores.append(float(semantic_similarity))
 
-    flush()
+        flush()
+    finally:
+        publication_progress.close()
 
-    print(
+    tqdm.write(
         f"[year_vector] done year={year} "
         f"total_rows={row_counter} total_publications={publication_counter}"
     )
@@ -364,12 +372,12 @@ def main():
 
         for year_index, year_value in enumerate(years):
             year_topic_vector = year_topic_matrix[:, year_index]
-            print(f"year={year_value} topics={len(year_topic_vector)}")
+            tqdm.write(f"year={year_value} topics={len(year_topic_vector)}")
             for base_topic_id, value in zip(
                 base_topic_ids, year_topic_vector, strict=True
             ):
                 base_topic_text = base_topic_text_by_id[base_topic_id]
-                print(f"{base_topic_id}\t{value:.6f}\t{base_topic_text}")
+                tqdm.write(f"{base_topic_id}\t{value:.6f}\t{base_topic_text}")
 
 
 if __name__ == "__main__":
