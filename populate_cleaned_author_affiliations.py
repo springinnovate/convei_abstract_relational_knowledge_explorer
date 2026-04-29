@@ -15,8 +15,14 @@ from pathlib import Path
 import sqlite3
 import sys
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
 
 DB_PATH = "2025_11_09_researchgate.sqlite"
+DEFAULT_BATCH_SIZE = 1000
 
 logging.basicConfig(
     level=logging.INFO,
@@ -161,11 +167,15 @@ def looks_like_location_anchor(text: str) -> bool:
     )
 
 
-def split_affiliation_and_place(affiliation_text: str) -> tuple[str, str | None]:
+def split_affiliation_and_place(
+    affiliation_text: str,
+) -> tuple[str, str | None]:
     if not affiliation_text or not affiliation_text.strip():
         return "", None
 
-    chunks = [chunk.strip() for chunk in affiliation_text.split(",") if chunk.strip()]
+    chunks = [
+        chunk.strip() for chunk in affiliation_text.split(",") if chunk.strip()
+    ]
     if len(chunks) <= 1:
         return affiliation_text.strip(), None
 
@@ -211,7 +221,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print raw/cleaned/place rows without modifying the database.",
     )
-    parser.add_argument("--batch-size", type=int, default=5000)
+    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
+    parser.add_argument(
+        "--random",
+        action="store_true",
+        help="Randomly select rows when --limit is provided.",
+    )
     parser.add_argument(
         "--dry-run-output",
         type=Path,
@@ -225,7 +240,11 @@ def parse_args() -> argparse.Namespace:
     if args.batch_size < 1:
         parser.error("--batch-size must be greater than zero")
     if args.dry_run and args.limit is None:
-        parser.error("--dry-run requires --limit to avoid dumping the whole table")
+        parser.error(
+            "--dry-run requires --limit to avoid dumping the whole table"
+        )
+    if args.random and args.limit is None:
+        parser.error("--random requires --limit")
 
     return args
 
@@ -241,7 +260,9 @@ def set_sqlite_pragmas(connection: sqlite3.Connection) -> None:
 def ensure_cleaned_affiliation_column(connection: sqlite3.Connection) -> None:
     columns = {
         row["name"]
-        for row in connection.execute("PRAGMA table_info(publication_author_locations)")
+        for row in connection.execute(
+            "PRAGMA table_info(publication_author_locations)"
+        )
     }
     if "cleaned_affiliation_text" in columns:
         return
@@ -273,11 +294,48 @@ def fetch_author_affiliation_rows(
     ).fetchall()
 
 
+def fetch_random_author_affiliation_rows(
+    connection: sqlite3.Connection,
+    limit: int,
+) -> list[sqlite3.Row]:
+    return connection.execute(
+        """
+        select id, affiliation_text
+        from publication_author_locations
+        order by random()
+        limit ?
+        """,
+        (limit,),
+    ).fetchall()
+
+
+def count_author_affiliation_rows(connection: sqlite3.Connection) -> int:
+    return int(
+        connection.execute(
+            "select count(*) from publication_author_locations"
+        ).fetchone()[0]
+    )
+
+
+def progress_bar(total: int | None, desc: str):
+    if tqdm is None:
+        return None
+    return tqdm(total=total, desc=desc, unit="row")
+
+
+def maybe_progress_iterable(rows: list[sqlite3.Row], desc: str):
+    if tqdm is None:
+        return rows
+    return tqdm(rows, total=len(rows), desc=desc, unit="row")
+
+
 def dry_run(args: argparse.Namespace) -> None:
     output_file = None
     if args.dry_run_output is not None:
         args.dry_run_output.parent.mkdir(parents=True, exist_ok=True)
-        output_file = open(args.dry_run_output, "w", newline="", encoding="utf-8")
+        output_file = open(
+            args.dry_run_output, "w", newline="", encoding="utf-8"
+        )
 
     output = output_file or sys.stdout
     writer = csv.writer(output)
@@ -294,13 +352,16 @@ def dry_run(args: argparse.Namespace) -> None:
         with sqlite3.connect(args.db) as connection:
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA busy_timeout=60000")
-            rows = fetch_author_affiliation_rows(
-                connection,
-                after_id=0,
-                batch_size=args.limit,
-                remaining=args.limit,
-            )
-            for row in rows:
+            if args.random:
+                rows = fetch_random_author_affiliation_rows(connection, args.limit)
+            else:
+                rows = fetch_author_affiliation_rows(
+                    connection,
+                    after_id=0,
+                    batch_size=args.limit,
+                    remaining=args.limit,
+                )
+            for row in maybe_progress_iterable(rows, "Cleaning affiliations"):
                 cleaned_affiliation, place = split_affiliation_and_place(
                     row["affiliation_text"]
                 )
@@ -329,51 +390,85 @@ def update_database(args: argparse.Namespace) -> None:
         set_sqlite_pragmas(connection)
         ensure_cleaned_affiliation_column(connection)
 
-        while remaining is None or remaining > 0:
-            rows = fetch_author_affiliation_rows(
-                connection,
-                after_id=last_id,
-                batch_size=args.batch_size,
-                remaining=remaining,
-            )
-            if not rows:
-                break
-
-            update_rows = []
-            for row in rows:
-                cleaned_affiliation, _ = split_affiliation_and_place(
-                    row["affiliation_text"]
-                )
-                update_rows.append((cleaned_affiliation, row["id"]))
-                if cleaned_affiliation != row["affiliation_text"]:
-                    changed_count += 1
-
-            connection.executemany(
-                """
-                update publication_author_locations
-                set cleaned_affiliation_text = ?
-                where id = ?
-                """,
-                update_rows,
-            )
-            connection.commit()
-
-            processed_count += len(rows)
-            last_id = rows[-1]["id"]
-            if remaining is not None:
-                remaining -= len(rows)
+        if args.random:
+            logger.info("Selecting %s random rows", args.limit)
+            rows = fetch_random_author_affiliation_rows(connection, args.limit)
+            with_progress = progress_bar(len(rows), "Cleaning affiliations")
+            try:
+                changed_count = update_rows(connection, rows, with_progress)
+            finally:
+                if with_progress is not None:
+                    with_progress.close()
             logger.info(
-                "Processed %s rows; changed=%s; last_id=%s",
-                processed_count,
+                "Finished random cleaned affiliation update: processed=%s changed=%s",
+                len(rows),
                 changed_count,
-                last_id,
             )
+            return
+
+        total_rows = args.limit or count_author_affiliation_rows(connection)
+        with_progress = progress_bar(total_rows, "Cleaning affiliations")
+        try:
+            while remaining is None or remaining > 0:
+                rows = fetch_author_affiliation_rows(
+                    connection,
+                    after_id=last_id,
+                    batch_size=args.batch_size,
+                    remaining=remaining,
+                )
+                if not rows:
+                    break
+
+                changed_count += update_rows(connection, rows, with_progress)
+
+                processed_count += len(rows)
+                last_id = rows[-1]["id"]
+                if remaining is not None:
+                    remaining -= len(rows)
+                logger.info(
+                    "Processed %s rows; changed=%s; last_id=%s",
+                    processed_count,
+                    changed_count,
+                    last_id,
+                )
+        finally:
+            if with_progress is not None:
+                with_progress.close()
 
     logger.info(
         "Finished cleaned affiliation update: processed=%s changed=%s",
         processed_count,
         changed_count,
     )
+
+
+def update_rows(
+    connection: sqlite3.Connection,
+    rows: list[sqlite3.Row],
+    with_progress=None,
+) -> int:
+    changed_count = 0
+    cleaned_rows = []
+    for row in rows:
+        cleaned_affiliation, _ = split_affiliation_and_place(
+            row["affiliation_text"]
+        )
+        cleaned_rows.append((cleaned_affiliation, row["id"]))
+        if cleaned_affiliation != row["affiliation_text"]:
+            changed_count += 1
+        if with_progress is not None:
+            with_progress.update(1)
+
+    connection.executemany(
+        """
+        update publication_author_locations
+        set cleaned_affiliation_text = ?
+        where id = ?
+        """,
+        cleaned_rows,
+    )
+    connection.commit()
+    return changed_count
 
 
 def main() -> None:
