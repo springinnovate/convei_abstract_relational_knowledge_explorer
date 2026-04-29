@@ -15,8 +15,14 @@ from pathlib import Path
 import sqlite3
 import sys
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
+
 
 DB_PATH = "2025_11_09_researchgate.sqlite"
+DEFAULT_BATCH_SIZE = 1000
 
 logging.basicConfig(
     level=logging.INFO,
@@ -215,7 +221,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Print raw/cleaned/place rows without modifying the database.",
     )
-    parser.add_argument("--batch-size", type=int, default=5000)
+    parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument(
         "--random",
         action="store_true",
@@ -303,6 +309,26 @@ def fetch_random_author_affiliation_rows(
     ).fetchall()
 
 
+def count_author_affiliation_rows(connection: sqlite3.Connection) -> int:
+    return int(
+        connection.execute(
+            "select count(*) from publication_author_locations"
+        ).fetchone()[0]
+    )
+
+
+def progress_bar(total: int | None, desc: str):
+    if tqdm is None:
+        return None
+    return tqdm(total=total, desc=desc, unit="row")
+
+
+def maybe_progress_iterable(rows: list[sqlite3.Row], desc: str):
+    if tqdm is None:
+        return rows
+    return tqdm(rows, total=len(rows), desc=desc, unit="row")
+
+
 def dry_run(args: argparse.Namespace) -> None:
     output_file = None
     if args.dry_run_output is not None:
@@ -335,7 +361,7 @@ def dry_run(args: argparse.Namespace) -> None:
                     batch_size=args.limit,
                     remaining=args.limit,
                 )
-            for row in rows:
+            for row in maybe_progress_iterable(rows, "Cleaning affiliations"):
                 cleaned_affiliation, place = split_affiliation_and_place(
                     row["affiliation_text"]
                 )
@@ -365,8 +391,14 @@ def update_database(args: argparse.Namespace) -> None:
         ensure_cleaned_affiliation_column(connection)
 
         if args.random:
+            logger.info("Selecting %s random rows", args.limit)
             rows = fetch_random_author_affiliation_rows(connection, args.limit)
-            changed_count = update_rows(connection, rows)
+            with_progress = progress_bar(len(rows), "Cleaning affiliations")
+            try:
+                changed_count = update_rows(connection, rows, with_progress)
+            finally:
+                if with_progress is not None:
+                    with_progress.close()
             logger.info(
                 "Finished random cleaned affiliation update: processed=%s changed=%s",
                 len(rows),
@@ -374,28 +406,34 @@ def update_database(args: argparse.Namespace) -> None:
             )
             return
 
-        while remaining is None or remaining > 0:
-            rows = fetch_author_affiliation_rows(
-                connection,
-                after_id=last_id,
-                batch_size=args.batch_size,
-                remaining=remaining,
-            )
-            if not rows:
-                break
+        total_rows = args.limit or count_author_affiliation_rows(connection)
+        with_progress = progress_bar(total_rows, "Cleaning affiliations")
+        try:
+            while remaining is None or remaining > 0:
+                rows = fetch_author_affiliation_rows(
+                    connection,
+                    after_id=last_id,
+                    batch_size=args.batch_size,
+                    remaining=remaining,
+                )
+                if not rows:
+                    break
 
-            changed_count += update_rows(connection, rows)
+                changed_count += update_rows(connection, rows, with_progress)
 
-            processed_count += len(rows)
-            last_id = rows[-1]["id"]
-            if remaining is not None:
-                remaining -= len(rows)
-            logger.info(
-                "Processed %s rows; changed=%s; last_id=%s",
-                processed_count,
-                changed_count,
-                last_id,
-            )
+                processed_count += len(rows)
+                last_id = rows[-1]["id"]
+                if remaining is not None:
+                    remaining -= len(rows)
+                logger.info(
+                    "Processed %s rows; changed=%s; last_id=%s",
+                    processed_count,
+                    changed_count,
+                    last_id,
+                )
+        finally:
+            if with_progress is not None:
+                with_progress.close()
 
     logger.info(
         "Finished cleaned affiliation update: processed=%s changed=%s",
@@ -407,6 +445,7 @@ def update_database(args: argparse.Namespace) -> None:
 def update_rows(
     connection: sqlite3.Connection,
     rows: list[sqlite3.Row],
+    with_progress=None,
 ) -> int:
     changed_count = 0
     cleaned_rows = []
@@ -417,6 +456,8 @@ def update_rows(
         cleaned_rows.append((cleaned_affiliation, row["id"]))
         if cleaned_affiliation != row["affiliation_text"]:
             changed_count += 1
+        if with_progress is not None:
+            with_progress.update(1)
 
     connection.executemany(
         """
