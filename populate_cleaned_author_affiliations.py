@@ -161,11 +161,15 @@ def looks_like_location_anchor(text: str) -> bool:
     )
 
 
-def split_affiliation_and_place(affiliation_text: str) -> tuple[str, str | None]:
+def split_affiliation_and_place(
+    affiliation_text: str,
+) -> tuple[str, str | None]:
     if not affiliation_text or not affiliation_text.strip():
         return "", None
 
-    chunks = [chunk.strip() for chunk in affiliation_text.split(",") if chunk.strip()]
+    chunks = [
+        chunk.strip() for chunk in affiliation_text.split(",") if chunk.strip()
+    ]
     if len(chunks) <= 1:
         return affiliation_text.strip(), None
 
@@ -213,6 +217,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--batch-size", type=int, default=5000)
     parser.add_argument(
+        "--random",
+        action="store_true",
+        help="Randomly select rows when --limit is provided.",
+    )
+    parser.add_argument(
         "--dry-run-output",
         type=Path,
         default=None,
@@ -225,7 +234,11 @@ def parse_args() -> argparse.Namespace:
     if args.batch_size < 1:
         parser.error("--batch-size must be greater than zero")
     if args.dry_run and args.limit is None:
-        parser.error("--dry-run requires --limit to avoid dumping the whole table")
+        parser.error(
+            "--dry-run requires --limit to avoid dumping the whole table"
+        )
+    if args.random and args.limit is None:
+        parser.error("--random requires --limit")
 
     return args
 
@@ -241,7 +254,9 @@ def set_sqlite_pragmas(connection: sqlite3.Connection) -> None:
 def ensure_cleaned_affiliation_column(connection: sqlite3.Connection) -> None:
     columns = {
         row["name"]
-        for row in connection.execute("PRAGMA table_info(publication_author_locations)")
+        for row in connection.execute(
+            "PRAGMA table_info(publication_author_locations)"
+        )
     }
     if "cleaned_affiliation_text" in columns:
         return
@@ -273,11 +288,28 @@ def fetch_author_affiliation_rows(
     ).fetchall()
 
 
+def fetch_random_author_affiliation_rows(
+    connection: sqlite3.Connection,
+    limit: int,
+) -> list[sqlite3.Row]:
+    return connection.execute(
+        """
+        select id, affiliation_text
+        from publication_author_locations
+        order by random()
+        limit ?
+        """,
+        (limit,),
+    ).fetchall()
+
+
 def dry_run(args: argparse.Namespace) -> None:
     output_file = None
     if args.dry_run_output is not None:
         args.dry_run_output.parent.mkdir(parents=True, exist_ok=True)
-        output_file = open(args.dry_run_output, "w", newline="", encoding="utf-8")
+        output_file = open(
+            args.dry_run_output, "w", newline="", encoding="utf-8"
+        )
 
     output = output_file or sys.stdout
     writer = csv.writer(output)
@@ -294,12 +326,15 @@ def dry_run(args: argparse.Namespace) -> None:
         with sqlite3.connect(args.db) as connection:
             connection.row_factory = sqlite3.Row
             connection.execute("PRAGMA busy_timeout=60000")
-            rows = fetch_author_affiliation_rows(
-                connection,
-                after_id=0,
-                batch_size=args.limit,
-                remaining=args.limit,
-            )
+            if args.random:
+                rows = fetch_random_author_affiliation_rows(connection, args.limit)
+            else:
+                rows = fetch_author_affiliation_rows(
+                    connection,
+                    after_id=0,
+                    batch_size=args.limit,
+                    remaining=args.limit,
+                )
             for row in rows:
                 cleaned_affiliation, place = split_affiliation_and_place(
                     row["affiliation_text"]
@@ -329,6 +364,16 @@ def update_database(args: argparse.Namespace) -> None:
         set_sqlite_pragmas(connection)
         ensure_cleaned_affiliation_column(connection)
 
+        if args.random:
+            rows = fetch_random_author_affiliation_rows(connection, args.limit)
+            changed_count = update_rows(connection, rows)
+            logger.info(
+                "Finished random cleaned affiliation update: processed=%s changed=%s",
+                len(rows),
+                changed_count,
+            )
+            return
+
         while remaining is None or remaining > 0:
             rows = fetch_author_affiliation_rows(
                 connection,
@@ -339,24 +384,7 @@ def update_database(args: argparse.Namespace) -> None:
             if not rows:
                 break
 
-            update_rows = []
-            for row in rows:
-                cleaned_affiliation, _ = split_affiliation_and_place(
-                    row["affiliation_text"]
-                )
-                update_rows.append((cleaned_affiliation, row["id"]))
-                if cleaned_affiliation != row["affiliation_text"]:
-                    changed_count += 1
-
-            connection.executemany(
-                """
-                update publication_author_locations
-                set cleaned_affiliation_text = ?
-                where id = ?
-                """,
-                update_rows,
-            )
-            connection.commit()
+            changed_count += update_rows(connection, rows)
 
             processed_count += len(rows)
             last_id = rows[-1]["id"]
@@ -374,6 +402,32 @@ def update_database(args: argparse.Namespace) -> None:
         processed_count,
         changed_count,
     )
+
+
+def update_rows(
+    connection: sqlite3.Connection,
+    rows: list[sqlite3.Row],
+) -> int:
+    changed_count = 0
+    cleaned_rows = []
+    for row in rows:
+        cleaned_affiliation, _ = split_affiliation_and_place(
+            row["affiliation_text"]
+        )
+        cleaned_rows.append((cleaned_affiliation, row["id"]))
+        if cleaned_affiliation != row["affiliation_text"]:
+            changed_count += 1
+
+    connection.executemany(
+        """
+        update publication_author_locations
+        set cleaned_affiliation_text = ?
+        where id = ?
+        """,
+        cleaned_rows,
+    )
+    connection.commit()
+    return changed_count
 
 
 def main() -> None:
