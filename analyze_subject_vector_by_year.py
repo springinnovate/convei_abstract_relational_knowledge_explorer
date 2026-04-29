@@ -4,10 +4,11 @@ from __future__ import annotations
 Compute per-year base-topic distributions for publications stored in a SQLite database.
 
 This script queries a ResearchGate-derived SQLite database containing publications, base topics,
-and per-publication distances (semantic similarities) to base topics. For each year, it sums
-the positive semantic similarity scores for each base topic across all publications in that year
-to form a year-level topic vector. It also writes a normalized companion matrix where each year
-column sums to 1.0.
+and per-publication distances (semantic similarities) to base topics. For each publication in a
+given year, it squares each nonnegative base-topic similarity and normalizes the squared vector
+so the publication contributes a total topic weight of 1. The normalized publication-level
+vectors are summed across all publications in the year to form a year-level topic vector. It
+also writes a normalized companion matrix where each year column sums to 1.0.
 
 The script can compute vectors across a year range and write a CSV matrix with one row per base
 topic and one column per year.
@@ -27,7 +28,7 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from sqlalchemy import create_engine, event, func, select
+from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import Session
 
 from models import BaseTopics, BaseTopicToPublicationDistance, Publication
@@ -94,10 +95,13 @@ def year_vector(
     base_topic_ids_all,
     base_topic_index_by_id: dict[int, int],
 ):
-    """Compute a year-level base-topic vector by summing topic scores.
+    """Compute a year-level base-topic vector by aggregating publication-level weights.
 
-    For each publication in the specified year, this function adds each base topic's
-    positive semantic similarity score to the corresponding year-level topic total.
+    For each publication in the specified year, this function:
+      1) collects (base_topic_id, semantic_similarity) pairs
+      2) clamps negative similarities to 0, then squares each score
+      3) normalizes the squared scores so the publication-level vector sums to 1
+      4) accumulates the resulting weights into a year-level vector over base topics
 
     Args:
         session: An active SQLAlchemy session.
@@ -106,7 +110,7 @@ def year_vector(
         base_topic_index_by_id: Dict mapping base topic ID (int) -> index (int).
 
     Returns:
-        NumPy array (float64) with summed positive semantic similarity per base topic.
+        NumPy array (float64) with summed normalized topic weights per base topic.
     """
     print(f"[year_vector] start year={year}")
 
@@ -114,29 +118,92 @@ def year_vector(
 
     query = (
         select(
+            BaseTopicToPublicationDistance.publication_id,
             BaseTopicToPublicationDistance.base_topic_id,
-            func.sum(BaseTopicToPublicationDistance.semantic_similarity),
+            BaseTopicToPublicationDistance.semantic_similarity,
         )
         .join(
             Publication,
             Publication.id == BaseTopicToPublicationDistance.publication_id,
         )
         .where(Publication.publication_year == year)
-        .where(BaseTopicToPublicationDistance.semantic_similarity > 0.0)
-        .group_by(BaseTopicToPublicationDistance.base_topic_id)
-        .order_by(BaseTopicToPublicationDistance.base_topic_id)
+        .order_by(
+            BaseTopicToPublicationDistance.publication_id,
+            BaseTopicToPublicationDistance.base_topic_id,
+        )
     )
 
     print("[year_vector] executing main query")
 
-    row_counter = 0
-    for base_topic_id, semantic_similarity_sum in session.execute(query):
-        row_counter += 1
-        year_topic_vector[base_topic_index_by_id[base_topic_id]] = float(
-            semantic_similarity_sum or 0.0
-        )
+    rows = session.execute(query)
 
-    print(f"[year_vector] done year={year} total_topics={row_counter}")
+    current_publication_id = None
+    publication_base_topic_ids: list[int] = []
+    publication_scores: list[float] = []
+
+    publication_counter = 0
+    row_counter = 0
+
+    def flush():
+        """Flush accumulated rows for the current publication into the year vector.
+
+        Squares and normalizes the per-publication topic vector, then adds the resulting
+        distribution to `year_topic_vector`.
+
+        Returns:
+            None
+        """
+        nonlocal publication_counter
+
+        if not publication_scores:
+            return
+
+        scores = np.array(publication_scores, dtype=np.float64)
+        scores = np.maximum(scores, 0.0)
+        weights = np.square(scores)
+        denominator = float(weights.sum())
+        if denominator == 0.0:
+            return
+
+        publication_counter += 1
+
+        if publication_counter % 10000 == 0:
+            print(
+                f"[year_vector] flushed {publication_counter} publications "
+                f"(rows processed={row_counter})"
+            )
+
+        weights = weights / denominator
+
+        for base_topic_id, weight in zip(
+            publication_base_topic_ids, weights, strict=True
+        ):
+            year_topic_vector[base_topic_index_by_id[base_topic_id]] += float(weight)
+
+    for publication_id, base_topic_id, semantic_similarity in rows:
+        row_counter += 1
+
+        if row_counter % 100000 == 0:
+            print(f"[year_vector] processed {row_counter} rows")
+
+        if current_publication_id is None:
+            current_publication_id = publication_id
+
+        if publication_id != current_publication_id:
+            flush()
+            current_publication_id = publication_id
+            publication_base_topic_ids = []
+            publication_scores = []
+
+        publication_base_topic_ids.append(int(base_topic_id))
+        publication_scores.append(float(semantic_similarity))
+
+    flush()
+
+    print(
+        f"[year_vector] done year={year} "
+        f"total_rows={row_counter} total_publications={publication_counter}"
+    )
 
     return year_topic_vector
 
@@ -171,7 +238,7 @@ def topk(base_topic_ids, base_topic_text_by_id, year_topic_vector, k: int):
 def write_csv(path: str, base_topic_ids, base_topic_text_by_id, year_topic_vector):
     """Write a year topic vector to a CSV file.
 
-    The CSV contains one row per base topic with the summed weight for the year.
+    The CSV contains one row per base topic with the summed normalized weight for the year.
 
     Args:
         path: Output CSV file path.
@@ -185,7 +252,7 @@ def write_csv(path: str, base_topic_ids, base_topic_text_by_id, year_topic_vecto
     with open(path, "w", newline="") as file:
         csv_writer = csv.writer(file)
         csv_writer.writerow(
-            ["base_topic_id", "base_topic_text", "sum_semantic_similarity"]
+            ["base_topic_id", "base_topic_text", "sum_normalized_subject_weight"]
         )
         for base_topic_id, value in zip(base_topic_ids, year_topic_vector, strict=True):
             csv_writer.writerow(
