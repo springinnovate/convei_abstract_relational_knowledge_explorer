@@ -74,7 +74,7 @@ def load_pending_author_locations(
     query = (
         select(
             PublicationAuthorLocation.id,
-            PublicationAuthorLocation.affiliation_text,
+            PublicationAuthorLocation.cleaned_affiliation_text,
         )
         .outerjoin(
             PublicationAuthorLocationAffiliationTypeDistance,
