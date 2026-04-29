@@ -5,7 +5,7 @@ import argparse
 import numpy as np
 from dotenv import load_dotenv
 from openai import OpenAI
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
 from tqdm import tqdm
@@ -71,10 +71,14 @@ def load_affiliation_types(session: Session) -> tuple[list[int], np.ndarray]:
 def load_pending_author_locations(
     session: Session, limit: int | None
 ) -> list[tuple[int, str]]:
+    affiliation_embedding_text = func.coalesce(
+        func.nullif(PublicationAuthorLocation.cleaned_affiliation_text, ""),
+        PublicationAuthorLocation.affiliation_text,
+    )
     query = (
         select(
             PublicationAuthorLocation.id,
-            PublicationAuthorLocation.affiliation_text,
+            affiliation_embedding_text,
         )
         .outerjoin(
             PublicationAuthorLocationAffiliationTypeDistance,
