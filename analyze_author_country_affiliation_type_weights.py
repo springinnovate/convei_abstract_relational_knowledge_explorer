@@ -125,6 +125,7 @@ def write_matrix_csv(
         nonlocal current_vector
         if current_vector is None or current_country is None:
             return
+        # Stored similarities stay raw; country totals use report-time weights.
         country_vector = countries.setdefault(
             current_country,
             [0.0 for _ in affiliation_type_names],

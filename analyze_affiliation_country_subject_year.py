@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 out_dir.mkdir(exist_ok=True)
 
+# The database stores raw semantic similarities. These CTEs derive report-time
+# weights by clipping negatives, raising positives to the fourth power, and
+# normalizing each publication vector so it sums to 1.0 before aggregation.
 common_ctes = """
 with country_map as (
     select distinct

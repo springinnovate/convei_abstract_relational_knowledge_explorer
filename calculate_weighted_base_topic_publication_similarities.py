@@ -42,6 +42,8 @@ SessionLocal = sessionmaker(bind=engine)
 
 
 def load_transformed_topic_weights(session, topic_ids: list[int]):
+    # The database stores raw semantic similarities. Ranking uses report-time
+    # transformed topic weights so raw scores remain available for other uses.
     topic_index_by_id = {topic_id: index for index, topic_id in enumerate(topic_ids)}
     rows = session.execute(
         select(

@@ -93,6 +93,8 @@ with Session(engine) as session:
     }
     topic_names = [topic_name for _, topic_name in topics_id_name]
 
+    # The database stores raw semantic similarities. Transform those raw
+    # publication-level topic vectors only at report time.
     logging.info("Building publication-level topic vectors")
     publication_to_topic_scores = {}
     for topic_id, pub_id, semantic_similarity in tqdm(

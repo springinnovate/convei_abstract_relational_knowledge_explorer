@@ -142,6 +142,7 @@ def build_copublishing_matrix(
         nonlocal current_vector, author_count
         if current_vector is None:
             return
+        # Stored similarities stay raw; co-publishing uses report-time weights.
         author_vectors.append(power_normalize(current_vector))
         author_count += 1
         current_vector = None
