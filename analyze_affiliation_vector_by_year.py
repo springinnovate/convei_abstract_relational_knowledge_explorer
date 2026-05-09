@@ -4,10 +4,12 @@ from __future__ import annotations
 Compute per-year affiliation-type distributions for publications in a SQLite database.
 
 This script aggregates semantic similarity scores between publications and
-affiliation types into yearly distributions. For each year, it sums positive
-semantic similarity scores for each affiliation type across publications to
-produce a year-level affiliation-type vector. It also writes a normalized
-companion matrix where each year column sums to 1.0.
+affiliation types into yearly distributions. For each publication, it clips
+negative values to zero, squares each affiliation-type similarity, and
+normalizes the resulting vector so the publication contributes total weight 1.
+It sums those transformed publication-level vectors to produce a year-level
+affiliation-type vector. It also writes a normalized companion matrix where
+each year column sums to 1.0.
 
 The result is written to a CSV file with one row per affiliation type and one
 column per year.
@@ -25,9 +27,10 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-from sqlalchemy import create_engine, event, func, select
+from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import Session
 
+from affiliation_vector_transform import power_normalize
 from models import (
     AffiliationType,
     AffiliationTypeToPublicationDistance,
@@ -93,8 +96,9 @@ def year_vector(
 ):
     """Compute a year-level affiliation-type distribution vector.
 
-    For each publication in the specified year, this function adds each positive
-    affiliation-type semantic similarity score to the year-level type total.
+    For each publication in the specified year, this function transforms the
+    publication's affiliation-type vector by clipping negative values to zero,
+    squaring each value, and normalizing the vector to sum to 1.
 
     Args:
         session: An active SQLAlchemy session.
@@ -103,7 +107,7 @@ def year_vector(
         aff_type_index_by_id: ID -> dense index mapping.
 
     Returns:
-        np.ndarray: Summed positive semantic similarity per affiliation type.
+        np.ndarray: Summed normalized affiliation-type weights.
     """
     print(f"[year_vector] start year={year}")
 
@@ -111,8 +115,9 @@ def year_vector(
 
     query = (
         select(
+            AffiliationTypeToPublicationDistance.publication_id,
             AffiliationTypeToPublicationDistance.affiliation_type_id,
-            func.sum(AffiliationTypeToPublicationDistance.semantic_similarity),
+            AffiliationTypeToPublicationDistance.semantic_similarity,
         )
         .join(
             Publication,
@@ -120,17 +125,46 @@ def year_vector(
             == AffiliationTypeToPublicationDistance.publication_id,
         )
         .where(Publication.publication_year == year)
-        .where(AffiliationTypeToPublicationDistance.semantic_similarity > 0.0)
-        .group_by(AffiliationTypeToPublicationDistance.affiliation_type_id)
-        .order_by(AffiliationTypeToPublicationDistance.affiliation_type_id)
+        .order_by(
+            AffiliationTypeToPublicationDistance.publication_id,
+            AffiliationTypeToPublicationDistance.affiliation_type_id,
+        )
     )
 
-    for aff_type_id, semantic_similarity_sum in session.execute(query):
-        year_aff_vector[aff_type_index_by_id[aff_type_id]] = float(
-            semantic_similarity_sum or 0.0
-        )
+    current_publication_id = None
+    publication_aff_type_ids: list[int] = []
+    publication_scores: list[float] = []
+    publication_count = 0
 
-    print(f"[year_vector] done year={year}")
+    def flush() -> None:
+        nonlocal publication_count
+
+        if not publication_scores:
+            return
+
+        publication_count += 1
+        weights = power_normalize(publication_scores)
+        for aff_type_id, weight in zip(
+            publication_aff_type_ids, weights, strict=True
+        ):
+            year_aff_vector[aff_type_index_by_id[aff_type_id]] += float(weight)
+
+    for publication_id, aff_type_id, semantic_similarity in session.execute(query):
+        if current_publication_id is None:
+            current_publication_id = publication_id
+
+        if publication_id != current_publication_id:
+            flush()
+            current_publication_id = publication_id
+            publication_aff_type_ids = []
+            publication_scores = []
+
+        publication_aff_type_ids.append(int(aff_type_id))
+        publication_scores.append(float(semantic_similarity))
+
+    flush()
+
+    print(f"[year_vector] done year={year} publications={publication_count}")
     return year_aff_vector
 
 

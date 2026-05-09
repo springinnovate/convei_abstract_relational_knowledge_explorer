@@ -14,6 +14,8 @@ import logging
 from pathlib import Path
 import sqlite3
 
+from affiliation_vector_transform import power_normalize
+
 
 DB_PATH = "2025_11_09_researchgate.sqlite"
 REPORTS_DIR = Path("topic_mapping_reports")
@@ -63,6 +65,14 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--db", default=DB_PATH)
+    parser.add_argument(
+        "--include-transformed",
+        action="store_true",
+        help=(
+            "Append squared-and-normalized affiliation-type weights for comparing "
+            "raw vectors with the preferred nonlinear transform."
+        ),
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -180,14 +190,22 @@ def write_csv(
     author_locations: dict[int, sqlite3.Row],
     vectors: dict[int, dict[int, float]],
     affiliation_types: list[tuple[int, str]],
+    include_transformed: bool,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    transformed_headers = []
+    if include_transformed:
+        transformed_headers = [
+            f"transformed_{short_name}" for _, short_name in affiliation_types
+        ]
+
     headers = [
         "author_name",
         "author_affiliation",
         "publication_id",
         "publication_author_location_id",
         *[short_name for _, short_name in affiliation_types],
+        *transformed_headers,
     ]
 
     with open(path, "w", newline="", encoding="utf-8") as file:
@@ -196,16 +214,26 @@ def write_csv(
         for author_location_id in author_location_ids:
             author_location = author_locations[author_location_id]
             vector = vectors.get(author_location_id, {})
+            raw_values = [
+                vector.get(affiliation_type_id, "")
+                for affiliation_type_id, _ in affiliation_types
+            ]
+            transformed_values = []
+            if include_transformed:
+                numeric_raw_values = [
+                    vector.get(affiliation_type_id, 0.0)
+                    for affiliation_type_id, _ in affiliation_types
+                ]
+                transformed_values = power_normalize(numeric_raw_values).tolist()
+
             writer.writerow(
                 [
                     author_location["author_name"],
                     author_location["affiliation_text"],
                     author_location["publication_id"],
                     author_location["id"],
-                    *[
-                        vector.get(affiliation_type_id, "")
-                        for affiliation_type_id, _ in affiliation_types
-                    ],
+                    *raw_values,
+                    *transformed_values,
                 ]
             )
 
@@ -244,6 +272,7 @@ def main() -> None:
         author_locations,
         vectors,
         affiliation_types,
+        args.include_transformed,
     )
     print(output_path)
 
