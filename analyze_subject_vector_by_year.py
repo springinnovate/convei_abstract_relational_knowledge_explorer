@@ -32,6 +32,7 @@ from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import Session
 from tqdm.auto import tqdm
 
+from affiliation_vector_transform import power_normalize
 from models import BaseTopics, BaseTopicToPublicationDistance, Publication
 
 DB_PATH = "2025_11_09_researchgate.sqlite"
@@ -163,15 +164,7 @@ def year_vector(
         publication_progress.update(1)
         publication_progress.set_postfix(rows=row_counter, refresh=False)
 
-        scores = np.array(publication_scores, dtype=np.float64)
-        scores = np.maximum(scores, 0.0)
-        weights = np.square(scores)
-        denominator = float(weights.sum())
-        if denominator == 0.0:
-            return
-
-        weights = weights / denominator
-
+        weights = power_normalize(publication_scores)
         for base_topic_id, weight in zip(
             publication_base_topic_ids, weights, strict=True
         ):
