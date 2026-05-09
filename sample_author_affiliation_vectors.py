@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 """
-Sample author affiliations and export their affiliation-type similarity vectors.
+Sample author affiliations and export transformed affiliation-type vectors.
 
 Each output row represents one row from publication_author_locations. The vector
-columns come from publication_author_location_to_affiliation_type_distance.
+columns are power-normalized weights based on
+publication_author_location_to_affiliation_type_distance.
 """
 
 import argparse
@@ -42,8 +43,8 @@ def timestamp_suffix() -> str:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Export a sample of author affiliations with their classified "
-            "affiliation-type similarity vector."
+            "Export a sample of author affiliations with their transformed "
+            "affiliation-type weight vector."
         )
     )
     parser.add_argument(
@@ -65,14 +66,6 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--db", default=DB_PATH)
-    parser.add_argument(
-        "--include-transformed",
-        action="store_true",
-        help=(
-            "Append squared-and-normalized affiliation-type weights for comparing "
-            "raw vectors with the preferred nonlinear transform."
-        ),
-    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -190,22 +183,14 @@ def write_csv(
     author_locations: dict[int, sqlite3.Row],
     vectors: dict[int, dict[int, float]],
     affiliation_types: list[tuple[int, str]],
-    include_transformed: bool,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    transformed_headers = []
-    if include_transformed:
-        transformed_headers = [
-            f"transformed_{short_name}" for _, short_name in affiliation_types
-        ]
-
     headers = [
         "author_name",
         "author_affiliation",
         "publication_id",
         "publication_author_location_id",
         *[short_name for _, short_name in affiliation_types],
-        *transformed_headers,
     ]
 
     with open(path, "w", newline="", encoding="utf-8") as file:
@@ -214,17 +199,11 @@ def write_csv(
         for author_location_id in author_location_ids:
             author_location = author_locations[author_location_id]
             vector = vectors.get(author_location_id, {})
-            raw_values = [
-                vector.get(affiliation_type_id, "")
+            source_values = [
+                vector.get(affiliation_type_id, 0.0)
                 for affiliation_type_id, _ in affiliation_types
             ]
-            transformed_values = []
-            if include_transformed:
-                numeric_raw_values = [
-                    vector.get(affiliation_type_id, 0.0)
-                    for affiliation_type_id, _ in affiliation_types
-                ]
-                transformed_values = power_normalize(numeric_raw_values).tolist()
+            transformed_values = power_normalize(source_values).tolist()
 
             writer.writerow(
                 [
@@ -232,7 +211,6 @@ def write_csv(
                     author_location["affiliation_text"],
                     author_location["publication_id"],
                     author_location["id"],
-                    *raw_values,
                     *transformed_values,
                 ]
             )
@@ -272,7 +250,6 @@ def main() -> None:
         author_locations,
         vectors,
         affiliation_types,
-        args.include_transformed,
     )
     print(output_path)
 
