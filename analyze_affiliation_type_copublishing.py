@@ -4,9 +4,10 @@ from __future__ import annotations
 Build an affiliation-type co-publishing matrix across authors on the same paper.
 
 For each publication, the script loads positive affiliation-type weights for
-each author. It then adds pairwise products between every author and every other
-author on that publication into a directed matrix: source affiliation type ->
-target affiliation type.
+each author, fourth-power normalizes each author affiliation vector, and then
+adds pairwise products between every author and every other author on that
+publication into a directed matrix: source affiliation type -> target
+affiliation type.
 
 Same-type to same-type products are included when they come from different
 authors. Self-products from the same author are excluded.
@@ -28,6 +29,7 @@ try:
 except ImportError:
     tqdm = None
 
+from affiliation_vector_transform import power_normalize
 from models import (
     AffiliationType,
     PublicationAuthorLocation,
@@ -140,7 +142,7 @@ def build_copublishing_matrix(
         nonlocal current_vector, author_count
         if current_vector is None:
             return
-        author_vectors.append(current_vector)
+        author_vectors.append(power_normalize(current_vector))
         author_count += 1
         current_vector = None
 

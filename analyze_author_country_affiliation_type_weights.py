@@ -4,9 +4,10 @@ from __future__ import annotations
 Build a country-by-affiliation-type weight matrix for all author locations.
 
 This analysis uses all author location rows in `publication_author_locations`,
-not just primary-author locations. It sums positive semantic similarity weights
-from `publication_author_location_to_affiliation_type_distance` by country and
-affiliation type, then writes a CSV matrix to `topic_mapping_reports`.
+not just primary-author locations. It fourth-power normalizes each
+author-location affiliation-type vector from
+`publication_author_location_to_affiliation_type_distance`, then sums those
+transformed weights by country and affiliation type.
 """
 
 import argparse
@@ -16,6 +17,7 @@ import logging
 from pathlib import Path
 from time import perf_counter
 
+import numpy as np
 from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.orm import Session
 
@@ -24,6 +26,7 @@ try:
 except ImportError:
     tqdm = None
 
+from affiliation_vector_transform import power_normalize
 from models import (
     AffiliationType,
     Location,
@@ -72,15 +75,14 @@ def load_affiliation_types(session: Session):
     return affiliation_type_ids, affiliation_type_names, affiliation_type_index_by_id
 
 
-def load_country_affiliation_weights(session: Session):
+def iter_country_affiliation_weights(session: Session):
     country_name = func.trim(Location.name).label("country")
     query = (
         select(
             country_name,
+            PublicationAuthorLocation.id,
             PublicationAuthorLocationAffiliationTypeDistance.affiliation_type_id,
-            func.sum(
-                PublicationAuthorLocationAffiliationTypeDistance.semantic_similarity
-            ),
+            PublicationAuthorLocationAffiliationTypeDistance.semantic_similarity,
         )
         .join(
             PublicationAuthorLocation,
@@ -92,11 +94,8 @@ def load_country_affiliation_weights(session: Session):
         .where(
             PublicationAuthorLocationAffiliationTypeDistance.semantic_similarity > 0.0
         )
-        .group_by(
-            country_name,
-            PublicationAuthorLocationAffiliationTypeDistance.affiliation_type_id,
-        )
         .order_by(
+            PublicationAuthorLocation.id,
             country_name,
             PublicationAuthorLocationAffiliationTypeDistance.affiliation_type_id,
         )
@@ -114,16 +113,39 @@ def write_matrix_csv(
     countries: dict[str, list[float]] = {}
     row_iterator = country_weight_rows
     if tqdm is not None:
-        row_iterator = tqdm(country_weight_rows, desc="Loading country weights", unit="row")
+        row_iterator = tqdm(
+            country_weight_rows, desc="Loading country weights", unit="row"
+        )
 
-    for country, affiliation_type_id, weight_sum in row_iterator:
+    current_author_location_id = None
+    current_country = None
+    current_vector = None
+
+    def flush_author_location() -> None:
+        nonlocal current_vector
+        if current_vector is None or current_country is None:
+            return
         country_vector = countries.setdefault(
-            country,
+            current_country,
             [0.0 for _ in affiliation_type_names],
         )
-        country_vector[affiliation_type_index_by_id[affiliation_type_id]] = float(
-            weight_sum or 0.0
+        for index, weight in enumerate(power_normalize(current_vector)):
+            if weight > 0.0:
+                country_vector[index] += float(weight)
+        current_vector = None
+
+    for country, author_location_id, affiliation_type_id, semantic_similarity in row_iterator:
+        if author_location_id != current_author_location_id:
+            flush_author_location()
+            current_author_location_id = author_location_id
+            current_country = country
+            current_vector = np.zeros(len(affiliation_type_names), dtype=np.float64)
+
+        current_vector[affiliation_type_index_by_id[affiliation_type_id]] = float(
+            semantic_similarity
         )
+
+    flush_author_location()
 
     logger.info("Writing %d country rows to %s", len(countries), path)
     with open(path, "w", newline="", encoding="utf-8") as file:
@@ -168,8 +190,8 @@ def main() -> None:
         )
 
         query_start = perf_counter()
-        logger.info("Running grouped country-by-affiliation-type weight query")
-        country_weight_rows = load_country_affiliation_weights(session)
+        logger.info("Running country-by-affiliation-type weight query")
+        country_weight_rows = iter_country_affiliation_weights(session)
         write_matrix_csv(
             output_path,
             affiliation_type_names,

@@ -24,39 +24,7 @@ logger = logging.getLogger(__name__)
 out_dir.mkdir(exist_ok=True)
 
 common_ctes = """
-with top_subject as (
-    select publication_id, short_name as subject
-    from (
-        select
-            btpd.publication_id,
-            bt.short_name,
-            row_number() over (
-                partition by btpd.publication_id
-                order by btpd.semantic_similarity desc, bt.id
-            ) as rn
-        from base_topic_to_pub_distance btpd
-        join base_topics bt on bt.id = btpd.base_topic_id
-        where btpd.semantic_similarity > 0
-    )
-    where rn = 1
-),
-top_affiliation as (
-    select publication_id, short_name as affiliation_type
-    from (
-        select
-            atpd.publication_id,
-            aft.short_name,
-            row_number() over (
-                partition by atpd.publication_id
-                order by atpd.semantic_similarity desc, aft.id
-            ) as rn
-        from affiliation_type_to_pub_distance atpd
-        join affiliation_types aft on aft.id = atpd.affiliation_type_id
-        where atpd.semantic_similarity > 0
-    )
-    where rn = 1
-),
-country_map as (
+with country_map as (
     select distinct
         ppal.publication_id,
         l.name as country
@@ -67,23 +35,55 @@ country_map as (
 """
 
 soft_weight_ctes = """
-with positive_subject as (
+with subject_power as (
     select
         btpd.publication_id,
         bt.short_name as subject,
-        btpd.semantic_similarity as subject_weight
+        case
+            when btpd.semantic_similarity > 0
+            then btpd.semantic_similarity
+                * btpd.semantic_similarity
+                * btpd.semantic_similarity
+                * btpd.semantic_similarity
+            else 0
+        end as subject_power
     from base_topic_to_pub_distance btpd
     join base_topics bt on bt.id = btpd.base_topic_id
-    where btpd.semantic_similarity > 0
 ),
-positive_affiliation as (
+positive_subject as (
+    select
+        publication_id,
+        subject,
+        subject_power
+            / sum(subject_power) over (partition by publication_id)
+            as subject_weight
+    from subject_power
+    where subject_power > 0
+),
+affiliation_power as (
     select
         atpd.publication_id,
         aft.short_name as affiliation_type,
-        atpd.semantic_similarity as affiliation_weight
+        case
+            when atpd.semantic_similarity > 0
+            then atpd.semantic_similarity
+                * atpd.semantic_similarity
+                * atpd.semantic_similarity
+                * atpd.semantic_similarity
+            else 0
+        end as affiliation_power
     from affiliation_type_to_pub_distance atpd
     join affiliation_types aft on aft.id = atpd.affiliation_type_id
-    where atpd.semantic_similarity > 0
+),
+positive_affiliation as (
+    select
+        publication_id,
+        affiliation_type,
+        affiliation_power
+            / sum(affiliation_power) over (partition by publication_id)
+            as affiliation_weight
+    from affiliation_power
+    where affiliation_power > 0
 )
 """
 
