@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 """
-Sample author affiliations and export their affiliation-type similarity vectors.
+Sample author affiliations and export transformed affiliation-type vectors.
 
 Each output row represents one row from publication_author_locations. The vector
-columns come from publication_author_location_to_affiliation_type_distance.
+columns are power-normalized weights based on
+publication_author_location_to_affiliation_type_distance.
 """
 
 import argparse
@@ -13,6 +14,8 @@ from datetime import datetime
 import logging
 from pathlib import Path
 import sqlite3
+
+from affiliation_vector_transform import power_normalize
 
 
 DB_PATH = "2025_11_09_researchgate.sqlite"
@@ -40,8 +43,8 @@ def timestamp_suffix() -> str:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Export a sample of author affiliations with their classified "
-            "affiliation-type similarity vector."
+            "Export a sample of author affiliations with their transformed "
+            "affiliation-type weight vector."
         )
     )
     parser.add_argument(
@@ -196,16 +199,19 @@ def write_csv(
         for author_location_id in author_location_ids:
             author_location = author_locations[author_location_id]
             vector = vectors.get(author_location_id, {})
+            source_values = [
+                vector.get(affiliation_type_id, 0.0)
+                for affiliation_type_id, _ in affiliation_types
+            ]
+            transformed_values = power_normalize(source_values).tolist()
+
             writer.writerow(
                 [
                     author_location["author_name"],
                     author_location["affiliation_text"],
                     author_location["publication_id"],
                     author_location["id"],
-                    *[
-                        vector.get(affiliation_type_id, "")
-                        for affiliation_type_id, _ in affiliation_types
-                    ],
+                    *transformed_values,
                 ]
             )
 
