@@ -5,9 +5,10 @@ Compute per-year base-topic distributions for publications stored in a SQLite da
 
 This script queries a ResearchGate-derived SQLite database containing publications, base topics,
 and per-publication distances (semantic similarities) to base topics. For each publication in a
-given year, it squares each nonnegative base-topic similarity and normalizes the squared vector
-so the publication contributes a total topic weight of 1. The normalized publication-level
-vectors are summed across all publications in the year to form a year-level topic vector. It
+given year, it raises each nonnegative base-topic similarity to the fourth power
+and normalizes the transformed vector so the publication contributes a total
+topic weight of 1. The normalized publication-level vectors are summed across
+all publications in the year to form a year-level topic vector. It
 also writes a normalized companion matrix where each year column sums to 1.0.
 
 The script can compute vectors across a year range and write a CSV matrix with one row per base
@@ -101,8 +102,8 @@ def year_vector(
 
     For each publication in the specified year, this function:
       1) collects (base_topic_id, semantic_similarity) pairs
-      2) clamps negative similarities to 0, then squares each score
-      3) normalizes the squared scores so the publication-level vector sums to 1
+      2) clamps negative similarities to 0, then raises each score to the fourth power
+      3) normalizes the transformed scores so the publication-level vector sums to 1
       4) accumulates the resulting weights into a year-level vector over base topics
 
     Args:

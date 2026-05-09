@@ -5,8 +5,9 @@ Compute per-year affiliation-type distributions for publications in a SQLite dat
 
 This script aggregates semantic similarity scores between publications and
 affiliation types into yearly distributions. For each publication, it clips
-negative values to zero, squares each affiliation-type similarity, and
-normalizes the resulting vector so the publication contributes total weight 1.
+negative values to zero, raises each affiliation-type similarity to the fourth
+power, and normalizes the resulting vector so the publication contributes total
+weight 1.
 It sums those transformed publication-level vectors to produce a year-level
 affiliation-type vector. It also writes a normalized companion matrix where
 each year column sums to 1.0.

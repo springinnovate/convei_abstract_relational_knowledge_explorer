@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 
 
-def power_normalize(values, power: float = 2.0) -> np.ndarray:
+def power_normalize(values, power: float = 4.0) -> np.ndarray:
     """Apply a clipped power transform and normalize the vector.
 
     Negative values are clipped to zero before the power transform is applied.
