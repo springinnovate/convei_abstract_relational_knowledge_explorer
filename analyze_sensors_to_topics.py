@@ -3,10 +3,12 @@ import csv
 import logging
 from pathlib import Path
 
+import numpy as np
 from tqdm import tqdm
 from sqlalchemy import create_engine, event, select
 from sqlalchemy.orm import Session
 
+from affiliation_vector_transform import power_normalize
 from models import (
     Base,
     Publication,
@@ -49,6 +51,9 @@ with Session(engine) as session:
     topics_id_name = session.execute(
         select(BaseTopics.id, BaseTopics.short_name)
     ).all()
+    topic_id_to_index = {
+        topic_id: index for index, (topic_id, _) in enumerate(topics_id_name)
+    }
 
     logging.info("Loading publications")
     publications_id_abstract = session.execute(
@@ -86,24 +91,34 @@ with Session(engine) as session:
         topic_name: {sensor: 0.0 for sensor in sensor_names}
         for _, topic_name in topics_id_name
     }
-    topic_id_to_name = {
-        topic_id: topic_name for topic_id, topic_name in topics_id_name
-    }
+    topic_names = [topic_name for _, topic_name in topics_id_name]
 
-    logging.info("Accumulating topic-to-sensor closeness")
+    # The database stores raw semantic similarities. Transform those raw
+    # publication-level topic vectors only at report time.
+    logging.info("Building publication-level topic vectors")
+    publication_to_topic_scores = {}
     for topic_id, pub_id, semantic_similarity in tqdm(
-        topic_pub_distances, desc="Accumulating"
+        topic_pub_distances, desc="Topic vectors"
     ):
-        if semantic_similarity < 0:
-            continue
+        scores = publication_to_topic_scores.setdefault(
+            pub_id, np.zeros(len(topics_id_name), dtype=np.float64)
+        )
+        scores[topic_id_to_index[topic_id]] = float(semantic_similarity)
+
+    logging.info("Accumulating transformed topic-to-sensor closeness")
+    for pub_id, topic_scores in tqdm(
+        publication_to_topic_scores.items(), desc="Accumulating"
+    ):
         sensor_idxs = publication_to_sensor_idxs[pub_id]
         if not sensor_idxs:
             continue
-        topic_name = topic_id_to_name[topic_id]
-        if topic_name is None:
-            continue
+        topic_weights = power_normalize(topic_scores)
         for sensor_idx in sensor_idxs:
-            matrix[topic_name][sensor_names[sensor_idx]] += semantic_similarity
+            sensor_name = sensor_names[sensor_idx]
+            for topic_name, topic_weight in zip(topic_names, topic_weights):
+                if topic_name is None or topic_weight <= 0.0:
+                    continue
+                matrix[topic_name][sensor_name] += float(topic_weight)
 
     timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     reports_dir.mkdir(exist_ok=True)
