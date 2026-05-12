@@ -47,6 +47,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--db", default=DB_PATH)
     parser.add_argument(
+        "--rank-fields",
+        "--rank_fields",
+        nargs="*",
+        default=[],
+        help=(
+            "Optional subject short names to add as rank columns before the raw "
+            "subject-score columns. Example: --rank_fields \"Remote Sensing\" "
+            "\"Earth Observation\""
+        ),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=None,
@@ -92,6 +103,23 @@ def load_subjects(connection: sqlite3.Connection) -> list[tuple[int, str]]:
         order by short_name
         """
     ).fetchall()
+
+
+def validate_rank_fields(
+    rank_fields: list[str],
+    subjects: list[tuple[int, str]],
+) -> None:
+    subject_names = {short_name for _, short_name in subjects}
+    missing_rank_fields = [
+        rank_field for rank_field in rank_fields if rank_field not in subject_names
+    ]
+    if missing_rank_fields:
+        valid_subjects = ", ".join(sorted(subject_names))
+        missing = ", ".join(missing_rank_fields)
+        raise SystemExit(
+            f"Unknown --rank_fields subject(s): {missing}. "
+            f"Valid subjects are: {valid_subjects}"
+        )
 
 
 def load_eligible_publication_ids(connection: sqlite3.Connection) -> set[int]:
@@ -239,12 +267,27 @@ def top_subject(
     return subject_name_by_id[top_subject_id]
 
 
+def subject_ranks(
+    vector: dict[int, float],
+    subjects: list[tuple[int, str]],
+) -> dict[str, int]:
+    ranked_subjects = sorted(
+        subjects,
+        key=lambda subject: (-vector.get(subject[0], 0.0), subject[1]),
+    )
+    return {
+        short_name: rank
+        for rank, (_, short_name) in enumerate(ranked_subjects, start=1)
+    }
+
+
 def write_csv(
     path: Path,
     ranked_rows: list[dict[str, int]],
     abstracts: dict[int, str],
     vectors: dict[int, dict[int, float]],
     subjects: list[tuple[int, str]],
+    rank_fields: list[str],
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     subject_name_by_id = dict(subjects)
@@ -255,7 +298,9 @@ def write_csv(
     headers = [
         "abstract",
         "rank",
+        "ranked_subject",
         "top_subject",
+        *rank_fields,
         *[short_name for _, short_name in subjects],
     ]
 
@@ -272,11 +317,14 @@ def write_csv(
         ):
             publication_id = row["publication_id"]
             vector = vectors.get(publication_id, {})
+            ranks_by_subject = subject_ranks(vector, subjects)
             writer.writerow(
                 [
                     abstracts.get(publication_id, ""),
                     row["rank"],
+                    subject_name_by_id[row["ranked_subject_id"]],
                     top_subject(vector, subject_name_by_id),
+                    *[ranks_by_subject[rank_field] for rank_field in rank_fields],
                     *[
                         vector.get(subject_id, 0.0)
                         for subject_id, _ in subjects
@@ -300,12 +348,20 @@ def main() -> None:
         set_sqlite_pragmas(connection)
 
         subjects = load_subjects(connection)
+        validate_rank_fields(args.rank_fields, subjects)
         ranked_rows = load_ranked_abstracts(connection, subjects, args.count)
         publication_ids = sorted({row["publication_id"] for row in ranked_rows})
         abstracts = load_abstracts(connection, publication_ids)
         vectors = load_vectors(connection, publication_ids)
 
-    write_csv(output_path, ranked_rows, abstracts, vectors, subjects)
+    write_csv(
+        output_path,
+        ranked_rows,
+        abstracts,
+        vectors,
+        subjects,
+        args.rank_fields,
+    )
     print(output_path)
 
 
