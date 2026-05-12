@@ -183,7 +183,6 @@ def write_csv(
         "affiliation_string",
         "rank",
         "top_affiliation_type",
-        "ranked_affiliation_type",
         *[short_name for _, short_name in affiliation_types],
     ]
 
@@ -205,9 +204,6 @@ def write_csv(
                     affiliation_string,
                     row["rank"],
                     top_affiliation_type(vector, affiliation_type_name_by_id),
-                    affiliation_type_name_by_id[
-                        row["ranked_affiliation_type_id"]
-                    ],
                     *[
                         vector.get(affiliation_type_id, 0.0)
                         for affiliation_type_id, _ in affiliation_types
